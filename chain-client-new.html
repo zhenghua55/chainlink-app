@@ -1,0 +1,3396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080A0F">
+<title>ChainLink — 区块链社交会议</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700&display=swap');
+
+/* ══════════════════════════════════════════
+   ROOT VARIABLES
+══════════════════════════════════════════ */
+:root {
+  --bg:        #080A0F;
+  --bg2:       #0C0F17;
+  --bg3:       #111520;
+  --surface:   rgba(255,255,255,0.04);
+  --surface2:  rgba(255,255,255,0.07);
+  --surface3:  rgba(255,255,255,0.11);
+  --border:    rgba(255,255,255,0.08);
+  --border2:   rgba(255,255,255,0.14);
+  --gold:      #C9A84C;
+  --gold2:     #E8C96A;
+  --gold3:     #F5DFA0;
+  --glow:      rgba(201,168,76,0.20);
+  --glow2:     rgba(201,168,76,0.08);
+  --text:      #F0F0F5;
+  --text2:     #9BA3B8;
+  --text3:     #5A6070;
+  --green:     #34D399;
+  --red:       #F87171;
+  --blue:      #60A5FA;
+  --purple:    #A78BFA;
+  --r:         16px;
+  --r2:        24px;
+  --r3:        32px;
+  --shadow:    0 8px 32px rgba(0,0,0,0.4);
+  --shadow2:   0 24px 64px rgba(0,0,0,0.6);
+  --trans:     all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ══════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);overscroll-behavior:none}
+body{font-family:'DM Sans',sans-serif;color:var(--text);font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;touch-action:manipulation;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit;touch-action:manipulation}
+input,textarea{font-family:inherit;color:inherit;outline:none;border:none;background:none;
+  font-size:16px; /* 防止 iOS 自动缩放 */
+}
+a{text-decoration:none;color:inherit}
+::-webkit-scrollbar{width:0;height:0}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+
+/* ══════════════════════════════════════════
+   GRAIN OVERLAY
+══════════════════════════════════════════ */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity:.4;
+}
+
+/* ══════════════════════════════════════════
+   BACKGROUND ORBS
+══════════════════════════════════════════ */
+.bg-orbs{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);animation:orbFloat 20s ease-in-out infinite}
+.orb1{width:600px;height:600px;top:-200px;left:-150px;background:radial-gradient(circle,rgba(201,168,76,0.06) 0%,transparent 70%);animation-delay:0s}
+.orb2{width:500px;height:500px;bottom:-150px;right:-100px;background:radial-gradient(circle,rgba(96,165,250,0.05) 0%,transparent 70%);animation-delay:-8s}
+.orb3{width:400px;height:400px;top:40%;left:40%;background:radial-gradient(circle,rgba(167,139,250,0.04) 0%,transparent 70%);animation-delay:-14s}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-30px) scale(1.05)}66%{transform:translate(-20px,20px) scale(0.95)}}
+
+/* ══════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════ */
+#app{position:relative;z-index:1;width:100%;height:100%;display:flex;flex-direction:column}
+
+/* ══════════════════════════════════════════
+   ONBOARDING SCREEN
+══════════════════════════════════════════ */
+#onboarding{
+  position:fixed;inset:0;z-index:100;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);
+}
+.ob-card{
+  width:420px;max-width:calc(100vw - 40px);
+  background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);
+  border:1px solid var(--border2);
+  border-radius:var(--r3);
+  padding:48px 40px;
+  backdrop-filter:blur(40px);
+  box-shadow:var(--shadow2),0 0 0 1px rgba(201,168,76,0.08);
+  animation:cardIn .8s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes cardIn{from{opacity:0;transform:scale(0.9) translateY(20px)}to{opacity:1;transform:none}}
+.ob-logo{text-align:center;margin-bottom:36px}
+.ob-logo-icon{
+  width:72px;height:72px;border-radius:22px;
+  background:linear-gradient(135deg,#C9A84C,#8B6914);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:30px;margin-bottom:16px;
+  box-shadow:0 8px 32px rgba(201,168,76,0.3);
+}
+.ob-logo h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;letter-spacing:-.5px}
+.ob-logo p{color:var(--text2);font-size:13px;margin-top:4px}
+
+.ob-step{display:none}.ob-step.active{display:block;animation:stepIn .4s ease both}
+@keyframes stepIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+.ob-label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.ob-input{
+  width:100%;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:12px;padding:14px 16px;font-size:14px;color:var(--text);
+  transition:var(--trans);margin-bottom:12px;
+}
+.ob-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--glow2)}
+.ob-input::placeholder{color:var(--text3)}
+
+.ob-avatar-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
+.av-opt{
+  width:100%;aspect-ratio:1;border-radius:12px;border:2px solid transparent;
+  cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;
+  background:var(--surface);transition:var(--trans);
+}
+.av-opt:hover{background:var(--surface2);transform:scale(1.05)}
+.av-opt.selected{border-color:var(--gold);box-shadow:0 0 0 3px var(--glow2);background:var(--surface2)}
+
+.ob-hint{font-size:12px;color:var(--text3);text-align:center;margin-bottom:20px;line-height:1.6}
+.ob-key-display{
+  background:var(--bg);border:1px solid var(--border);border-radius:12px;
+  padding:14px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);
+  word-break:break-all;margin-bottom:16px;line-height:1.8;
+}
+.ob-key-display span{color:var(--gold);display:block;font-size:9px;letter-spacing:1px;margin-bottom:4px}
+
+.btn-gold{
+  width:100%;padding:15px;border-radius:14px;font-size:15px;font-weight:600;
+  background:linear-gradient(135deg,#C9A84C,#A07828);
+  color:#1a1000;cursor:pointer;transition:var(--trans);
+  box-shadow:0 4px 20px rgba(201,168,76,0.3);
+  position:relative;overflow:hidden;
+}
+.btn-gold::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.1),transparent);opacity:0;transition:opacity .2s}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(201,168,76,0.4)}
+.btn-gold:hover::before{opacity:1}
+.btn-gold:active{transform:translateY(0)}
+
+/* ══════════════════════════════════════════
+   MAIN LAYOUT
+══════════════════════════════════════════ */
+#main{display:none;flex:1;overflow:hidden;flex-direction:column}
+#main.visible{display:flex}
+
+/* Header — 移动端紧凑 */
+.app-header{
+  height:54px;display:flex;align-items:center;padding:0 14px;gap:10px;
+  border-bottom:1px solid var(--border);
+  background:rgba(8,10,15,0.85);backdrop-filter:blur(20px);
+  flex-shrink:0;
+}
+.app-logo{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;
+  background:linear-gradient(135deg,var(--gold2),var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  white-space:nowrap}
+.header-user{display:flex;align-items:center;gap:7px;margin-left:auto;cursor:pointer;
+  padding:5px 10px 5px 5px;border-radius:100px;border:1px solid var(--border);
+  background:var(--surface);transition:var(--trans)}
+.header-user:active{background:var(--surface2)}
+.user-av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#8B6914);
+  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.user-name{font-size:12px;font-weight:500;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-status{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;
+  box-shadow:0 0 6px var(--green)}
+
+/* Content Area */
+.app-content{flex:1;overflow:hidden;position:relative}
+
+/* Pages */
+.page{position:absolute;inset:0;display:flex;overflow:hidden;
+  opacity:0;transform:translateX(20px);pointer-events:none;
+  transition:opacity .3s ease,transform .3s cubic-bezier(0.4,0,0.2,1)}
+.page.active{opacity:1;transform:none;pointer-events:all}
+.page.exit{opacity:0;transform:translateX(-20px)}
+
+/* Bottom Nav — 移动端优化，支持安全区 */
+.bottom-nav{
+  display:flex;align-items:center;justify-content:space-around;
+  border-top:1px solid var(--border);background:rgba(8,10,15,0.95);
+  backdrop-filter:blur(20px);flex-shrink:0;
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom)) 4px;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 0;border-radius:12px;transition:var(--trans);cursor:pointer;
+  position:relative;min-height:48px;justify-content:center;
+}
+.nav-item:active{background:var(--surface)}
+.nav-icon{font-size:21px;transition:transform .3s cubic-bezier(0.34,1.56,0.64,1)}
+.nav-label{font-size:10px;color:var(--text2);font-weight:500;letter-spacing:.3px;transition:color .2s}
+.nav-badge{
+  position:absolute;top:4px;right:calc(50% - 18px);
+  background:var(--red);color:#fff;font-size:9px;font-weight:700;
+  padding:1px 5px;border-radius:100px;min-width:16px;text-align:center;
+}
+.nav-item.active .nav-icon{transform:scale(1.15)}
+.nav-item.active .nav-label{color:var(--gold)}
+
+/* ══════════════════════════════════════════
+   MESSAGES PAGE — 全屏切换式（移动端风格）
+══════════════════════════════════════════ */
+.msg-layout{display:flex;width:100%;height:100%;position:relative;overflow:hidden}
+
+/* Chat List — 默认占满，选中对话后向左滑出 */
+.chat-list{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;height:100%;
+  background:var(--bg);z-index:2;
+  transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.msg-layout.in-chat .chat-list{transform:translateX(-100%)}
+
+.chat-list-header{padding:14px 14px 10px;flex-shrink:0}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:12px}
+.search-bar{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:10px 14px;transition:var(--trans);
+}
+.search-bar:focus-within{border-color:var(--border2);background:var(--surface2)}
+.search-bar input{flex:1;font-size:13px;color:var(--text)}
+.search-bar input::placeholder{color:var(--text3)}
+
+.chat-items{flex:1;overflow-y:auto;padding:6px 8px}
+.chat-item{
+  display:flex;align-items:center;gap:12px;padding:12px 10px;
+  border-radius:14px;cursor:pointer;transition:var(--trans);position:relative;
+}
+.chat-item:hover{background:var(--surface)}
+.chat-item.active{background:linear-gradient(135deg,rgba(201,168,76,0.12),rgba(201,168,76,0.05));border:1px solid rgba(201,168,76,0.15)}
+.chat-av{
+  width:44px;height:44px;border-radius:14px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  position:relative;
+}
+.chat-av.group{background:linear-gradient(135deg,#1a2a4a,#0d1a30)}
+.chat-av .online-dot{
+  position:absolute;bottom:0;right:0;width:11px;height:11px;
+  border-radius:50%;background:var(--green);border:2px solid var(--bg);
+}
+.chat-info{flex:1;min-width:0}
+.chat-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.chat-preview{font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.chat-time{font-size:11px;color:var(--text3)}
+.chat-unread{background:var(--gold);color:#1a1000;font-size:10px;font-weight:700;
+  padding:2px 6px;border-radius:100px;min-width:18px;text-align:center}
+
+.new-chat-btn{
+  margin:12px;padding:14px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(201,168,76,0.12),rgba(201,168,76,0.05));
+  border:1px solid rgba(201,168,76,0.2);
+  font-size:13px;font-weight:600;color:var(--gold);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;transition:var(--trans);
+}
+.new-chat-btn:hover{background:linear-gradient(135deg,rgba(201,168,76,0.2),rgba(201,168,76,0.1));transform:translateY(-1px)}
+
+/* Chat Window — 默认在右侧屏外，选中对话后滑入 */
+.chat-window{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;height:100%;
+  background:var(--bg);z-index:3;
+  transform:translateX(100%);
+  transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.msg-layout.in-chat .chat-window{transform:translateX(0)}
+
+.chat-empty{display:none}
+
+.chat-win-header{
+  padding:10px 10px 10px 4px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;flex-shrink:0;
+  background:rgba(8,10,15,0.92);backdrop-filter:blur(20px);
+}
+.back-btn{
+  width:38px;height:38px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:22px;cursor:pointer;transition:var(--trans);
+  background:transparent;color:var(--text);flex-shrink:0;
+}
+.back-btn:active{background:var(--surface)}
+.chat-win-av{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.chat-win-name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-win-sub{font-size:10px;color:var(--green);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-win-actions{margin-left:auto;display:flex;gap:4px}
+.icon-btn{
+  width:34px;height:34px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:14px;cursor:pointer;transition:var(--trans);
+  background:var(--surface);border:1px solid var(--border);
+}
+.icon-btn:active{background:var(--surface2);transform:scale(0.95)}
+
+.messages-area{flex:1;overflow-y:auto;padding:14px 14px 8px;-webkit-overflow-scrolling:touch}
+.msg-date-sep{text-align:center;font-size:10px;color:var(--text3);margin:12px 0;
+  position:relative;display:flex;align-items:center;gap:10px}
+.msg-date-sep::before,.msg-date-sep::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.msg-bubble{display:flex;gap:8px;margin-bottom:12px;align-items:flex-end}
+.msg-bubble.mine{flex-direction:row-reverse}
+.msg-av{width:28px;height:28px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:13px;flex-shrink:0;background:var(--surface2)}
+.msg-content{max-width:78%}
+.msg-name{font-size:10px;color:var(--text2);margin-bottom:3px;padding-left:4px}
+.msg-bubble.mine .msg-name{display:none}
+.msg-text{
+  padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;
+  background:var(--surface2);border:1px solid var(--border);
+  animation:msgIn .3s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes msgIn{from{opacity:0;transform:scale(0.8) translateY(10px)}to{opacity:1;transform:none}}
+.msg-bubble.mine .msg-text{
+  background:linear-gradient(135deg,#C9A84C,#A07828);
+  color:#1a1000;border-color:transparent;
+}
+.msg-time{font-size:10px;color:var(--text3);margin-top:4px;padding:0 4px;text-align:right}
+.msg-bubble.mine .msg-time{text-align:right}
+
+/* Transfer bubble */
+.msg-transfer{
+  background:linear-gradient(135deg,rgba(52,211,153,0.1),rgba(52,211,153,0.05));
+  border:1px solid rgba(52,211,153,0.2);border-radius:16px;padding:14px 16px;
+  min-width:200px;
+}
+.transfer-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.transfer-amount{font-size:20px;font-weight:700;color:var(--green)}
+.transfer-chain{font-size:11px;color:var(--text2);background:var(--surface);border-radius:6px;padding:2px 8px}
+.transfer-addr{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:4px}
+
+/* Hongbao bubble */
+.msg-hongbao{
+  background:linear-gradient(135deg,#7c1010,#4a0808);
+  border:1px solid rgba(248,113,113,0.3);border-radius:16px;padding:16px 20px;
+  min-width:180px;text-align:center;cursor:pointer;transition:var(--trans);
+  position:relative;overflow:hidden;
+}
+.msg-hongbao::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at top,rgba(255,100,100,0.1),transparent 60%)}
+.msg-hongbao:hover{transform:scale(1.02)}
+.hongbao-icon{font-size:36px;margin-bottom:6px}
+.hongbao-amount{font-size:18px;font-weight:700;color:#FFD700}
+.hongbao-msg{font-size:12px;color:rgba(255,255,255,0.6);margin-top:4px}
+.hongbao-open{font-size:11px;color:#FFD700;margin-top:8px;font-weight:600}
+
+/* ══════════════════════════════════════════
+   消息销毁样式
+══════════════════════════════════════════ */
+.msg-burn-wrap{position:relative}
+
+/* 销毁倒计时徽章 */
+.burn-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:9px;color:#FF8C42;font-weight:600;
+  margin-left:6px;padding:2px 7px;border-radius:100px;
+  background:rgba(255,140,66,0.12);border:1px solid rgba(255,140,66,0.25);
+}
+.burn-badge.read{color:#FF6666;background:rgba(255,102,102,0.12);border-color:rgba(255,102,102,0.25)}
+.burn-badge.countdown{animation:burnPulse 1s ease-in-out infinite}
+@keyframes burnPulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* 阅后即焚消息遮罩（未读时模糊） */
+.msg-blur-cover{
+  position:absolute;inset:-1px;border-radius:16px;
+  background:repeating-linear-gradient(45deg,rgba(255,140,66,0.15),rgba(255,140,66,0.15) 6px,rgba(255,100,100,0.12) 6px,rgba(255,100,100,0.12) 12px);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:#FFAD82;font-weight:600;letter-spacing:.5px;
+  cursor:pointer;transition:opacity .35s ease;gap:5px;
+}
+.msg-blur-cover.revealed{opacity:0;pointer-events:none}
+.msg-blur-cover .fire{font-size:15px;animation:fireDance .6s ease-in-out infinite alternate}
+@keyframes fireDance{from{transform:translateY(0) scale(1)}to{transform:translateY(-1px) scale(1.12)}}
+
+/* 销毁动画 */
+@keyframes msgBurn{
+  0%{opacity:1;transform:none;filter:none}
+  40%{opacity:1;transform:scale(1.02);filter:brightness(1.3) sepia(.3) saturate(1.5)}
+  100%{opacity:0;transform:scale(0.85) translateY(-8px);filter:blur(6px) brightness(1.8) saturate(2)}
+}
+.msg-bubble.burning .msg-text,
+.msg-bubble.burning .msg-transfer,
+.msg-bubble.burning .msg-hongbao{animation:msgBurn .9s ease forwards}
+
+/* 已销毁占位 */
+.msg-burned{
+  padding:8px 14px;border-radius:14px;font-size:12px;line-height:1.4;
+  background:rgba(255,140,66,0.06);border:1px dashed rgba(255,140,66,0.25);
+  color:var(--text3);font-style:italic;display:inline-flex;align-items:center;gap:5px;
+}
+
+/* 长按菜单 */
+.msg-actions{
+  position:absolute;z-index:200;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:14px;padding:6px;box-shadow:var(--shadow2);
+  display:none;flex-direction:column;gap:2px;
+  animation:actionsIn .15s ease;min-width:160px;
+}
+@keyframes actionsIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:none}}
+.msg-actions.show{display:flex}
+.msg-action-item{
+  padding:10px 14px;border-radius:9px;font-size:13px;
+  cursor:pointer;display:flex;align-items:center;gap:9px;transition:var(--trans);
+  color:var(--text);
+}
+.msg-action-item:active{background:var(--surface2)}
+.msg-action-item.danger{color:var(--red)}
+.msg-action-item.danger:active{background:rgba(248,113,113,0.12)}
+.msg-action-sep{height:1px;background:var(--border);margin:3px 0}
+
+/* 销毁时间选择器 */
+.burn-picker{
+  display:flex;align-items:center;gap:6px;padding:5px 10px;
+  background:rgba(255,140,66,0.08);border:1px solid rgba(255,140,66,0.2);
+  border-radius:100px;font-size:11px;color:#FF8C42;cursor:pointer;
+  transition:var(--trans);flex-shrink:0;white-space:nowrap;font-weight:600;
+}
+.burn-picker:active{background:rgba(255,140,66,0.16)}
+.burn-picker.active{background:rgba(255,140,66,0.18);border-color:rgba(255,140,66,0.4)}
+
+/* Chat Input — 移动端优化 */
+.chat-input-area{
+  padding:8px 12px 10px;border-top:1px solid var(--border);
+  background:rgba(8,10,15,0.92);backdrop-filter:blur(10px);flex-shrink:0;
+}
+.chat-input-toolbar{display:flex;gap:5px;margin-bottom:8px;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.chat-input-toolbar::-webkit-scrollbar{display:none}
+.toolbar-btn{
+  padding:6px 11px;border-radius:10px;background:var(--surface);border:1px solid var(--border);
+  font-size:12px;cursor:pointer;transition:var(--trans);color:var(--text2);
+  display:flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;
+}
+.toolbar-btn:active{background:var(--surface2);color:var(--text)}
+.toolbar-btn span{font-size:14px}
+
+.chat-input-row{display:flex;align-items:flex-end;gap:8px}
+.chat-input-box{
+  flex:1;background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:10px 16px;font-size:15px;resize:none;
+  max-height:120px;min-height:40px;transition:var(--trans);line-height:1.4;
+}
+.chat-input-box:focus{border-color:var(--border2);background:var(--surface2)}
+.chat-input-box::placeholder{color:var(--text3);font-size:14px}
+.send-btn{
+  width:40px;height:40px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--gold),#8B6914);
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  cursor:pointer;transition:var(--trans);box-shadow:0 4px 14px var(--glow);
+  color:#1a1000;font-weight:700;
+}
+.send-btn:active{transform:scale(0.92)}
+
+/* ══════════════════════════════════════════
+   CONTACTS PAGE
+══════════════════════════════════════════ */
+.contacts-layout{display:flex;width:100%;height:100%;flex-direction:column}
+.contacts-header{padding:14px 14px 0;flex-shrink:0}
+.contacts-tabs{display:flex;gap:4px;margin-top:16px;border-bottom:1px solid var(--border);padding-bottom:0}
+.ctab{padding:10px 20px;font-size:13px;font-weight:500;cursor:pointer;
+  border-bottom:2px solid transparent;color:var(--text2);transition:var(--trans);margin-bottom:-1px}
+.ctab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.contacts-body{flex:1;overflow-y:auto;padding:12px 14px;-webkit-overflow-scrolling:touch}
+
+.contact-section-title{font-size:11px;letter-spacing:1px;text-transform:uppercase;
+  color:var(--text3);margin:16px 0 8px;font-weight:600}
+.contact-card{
+  display:flex;align-items:center;gap:14px;padding:14px 16px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;margin-bottom:8px;cursor:pointer;transition:var(--trans);
+}
+.contact-card:hover{background:var(--surface2);border-color:var(--border2);transform:translateX(4px)}
+.contact-av{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;
+  justify-content:center;font-size:22px;flex-shrink:0;background:var(--surface2)}
+.contact-info{flex:1;min-width:0}
+.contact-name{font-weight:600;font-size:14px;margin-bottom:3px}
+.contact-addr{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contact-chain-badges{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.chain-badge{
+  font-size:9px;padding:2px 7px;border-radius:100px;font-weight:600;letter-spacing:.3px;
+  border:1px solid;
+}
+.chain-badge.bsc{background:rgba(240,185,11,0.1);border-color:rgba(240,185,11,0.3);color:#F0B90B}
+.chain-badge.eth{background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:#60A5FA}
+.chain-badge.tron{background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.3);color:#F87171}
+.contact-actions{display:flex;gap:6px;flex-shrink:0}
+.contact-action-btn{
+  padding:7px 12px;border-radius:9px;font-size:12px;font-weight:500;
+  cursor:pointer;transition:var(--trans);border:1px solid var(--border);background:var(--surface2);
+}
+.contact-action-btn:hover{background:var(--surface3)}
+.contact-action-btn.primary{background:rgba(201,168,76,0.15);border-color:rgba(201,168,76,0.3);color:var(--gold)}
+.contact-action-btn.primary:hover{background:rgba(201,168,76,0.25)}
+
+.add-friend-panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:24px;margin-bottom:20px;
+}
+.add-friend-panel h3{font-size:16px;font-weight:700;margin-bottom:6px}
+.add-friend-panel p{font-size:13px;color:var(--text2);margin-bottom:16px}
+.my-id-box{
+  background:var(--bg);border:1px solid var(--border);border-radius:12px;
+  padding:14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--gold2);
+  word-break:break-all;margin-bottom:12px;line-height:1.7;cursor:pointer;
+  transition:var(--trans);position:relative;
+}
+.my-id-box:hover{border-color:var(--border2)}
+.my-id-box .copy-hint{position:absolute;bottom:8px;right:10px;font-size:10px;color:var(--text3)}
+
+/* ══════════════════════════════════════════
+   MEETING PAGE
+══════════════════════════════════════════ */
+.meeting-layout{display:flex;width:100%;height:100%;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.meeting-header{padding:14px 14px 0;flex-shrink:0}
+.meeting-grid{display:grid;grid-template-columns:1fr;gap:12px;padding:12px 14px 20px;flex:1}
+
+.meeting-room-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:22px;cursor:pointer;transition:var(--trans);position:relative;overflow:hidden;
+}
+.meeting-room-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;
+  background:linear-gradient(135deg,rgba(201,168,76,0.06),transparent)}
+.meeting-room-card:hover{border-color:var(--border2);transform:translateY(-4px);box-shadow:var(--shadow)}
+.meeting-room-card:hover::before{opacity:1}
+
+.room-title{font-size:16px;font-weight:700;margin-bottom:6px}
+.room-host{font-size:12px;color:var(--text2);margin-bottom:14px}
+.room-participants{display:flex;margin-bottom:14px}
+.room-pav{width:28px;height:28px;border-radius:8px;border:2px solid var(--bg);
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  margin-right:-8px;background:var(--surface2)}
+.room-count{font-size:12px;color:var(--text2);margin-left:16px;display:flex;align-items:center}
+.room-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.room-tag{font-size:10px;padding:3px 9px;border-radius:100px;
+  background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+.room-tag.live{background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.2);color:var(--red)}
+.room-tag.live::before{content:'●';margin-right:4px;animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.room-join-btn{
+  width:100%;padding:11px;border-radius:12px;font-size:13px;font-weight:600;
+  background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.05));
+  border:1px solid rgba(201,168,76,0.25);color:var(--gold);
+  cursor:pointer;transition:var(--trans);
+}
+.room-join-btn:hover{background:linear-gradient(135deg,rgba(201,168,76,0.25),rgba(201,168,76,0.1))}
+
+.create-room-card{
+  background:linear-gradient(135deg,rgba(201,168,76,0.08),rgba(201,168,76,0.03));
+  border:2px dashed rgba(201,168,76,0.2);border-radius:20px;padding:32px 22px;
+  cursor:pointer;transition:var(--trans);text-align:center;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  min-height:180px;
+}
+.create-room-card:hover{border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.08);transform:translateY(-4px)}
+.create-room-icon{font-size:36px}
+.create-room-label{font-size:15px;font-weight:600;color:var(--gold)}
+.create-room-sub{font-size:12px;color:var(--text3)}
+
+/* ══════════════════════════════════════════
+   ACTIVE MEETING OVERLAY
+══════════════════════════════════════════ */
+#meeting-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:#060810;display:none;flex-direction:column;
+}
+#meeting-overlay.active{display:flex;animation:overlayIn .4s ease both}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+
+.meeting-top-bar{
+  display:flex;align-items:center;padding:14px 14px;flex-shrink:0;gap:10px;
+  border-bottom:1px solid var(--border);background:rgba(6,8,16,0.9);backdrop-filter:blur(20px);
+  padding-top:calc(14px + env(safe-area-inset-top));
+}
+.meeting-room-name{font-size:15px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meeting-timer{font-family:'DM Mono',monospace;color:var(--text2);font-size:12px;flex-shrink:0}
+.meeting-end-btn{
+  padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;
+  background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.3);
+  color:var(--red);cursor:pointer;transition:var(--trans);flex-shrink:0;
+}
+.meeting-end-btn:active{background:rgba(248,113,113,0.25)}
+
+.video-grid{
+  flex:1;display:grid;gap:6px;padding:8px;overflow:hidden;
+  grid-template-columns:1fr 1fr;
+}
+.video-tile{
+  background:var(--bg3);border:1px solid var(--border);border-radius:14px;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  gap:8px;position:relative;overflow:hidden;min-height:140px;
+}
+.video-tile.speaking{border-color:var(--green);box-shadow:0 0 0 2px rgba(52,211,153,0.3)}
+.video-tile-av{font-size:40px}
+.video-tile-name{font-size:12px;font-weight:600}
+.video-tile-status{
+  position:absolute;bottom:12px;left:12px;
+  background:rgba(0,0,0,0.7);border-radius:8px;padding:4px 10px;
+  font-size:11px;display:flex;align-items:center;gap:6px;
+}
+.video-tile .host-badge{
+  position:absolute;top:10px;right:10px;
+  background:var(--gold);color:#1a1000;font-size:9px;font-weight:700;
+  padding:2px 8px;border-radius:100px;
+}
+.screen-share-tile{
+  grid-column:1 / -1;background:var(--bg2);border:2px solid var(--blue);
+  border-radius:18px;min-height:300px;display:flex;align-items:center;
+  justify-content:center;flex-direction:column;gap:8px;
+}
+
+.meeting-controls{
+  padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  flex-shrink:0;border-top:1px solid var(--border);
+  background:rgba(6,8,16,0.92);backdrop-filter:blur(20px);
+  flex-wrap:wrap;
+}
+.ctrl-btn{
+  width:44px;height:44px;border-radius:14px;display:flex;align-items:center;
+  justify-content:center;font-size:19px;cursor:pointer;transition:var(--trans);
+  background:var(--surface2);border:1px solid var(--border);
+}
+.ctrl-btn:active{background:var(--surface3);transform:scale(0.93)}
+.ctrl-btn.active{background:rgba(248,113,113,0.2);border-color:rgba(248,113,113,0.4)}
+.ctrl-btn.active .ctrl-icon{filter:grayscale(1)}
+.ctrl-label{font-size:9px;color:var(--text2);margin-top:3px;text-align:center}
+.ctrl-wrap{display:flex;flex-direction:column;align-items:center}
+.ctrl-leave{
+  padding:12px 22px;border-radius:14px;font-size:13px;font-weight:700;
+  background:var(--red);color:#fff;cursor:pointer;transition:var(--trans);
+  box-shadow:0 4px 18px rgba(248,113,113,0.4);
+}
+.ctrl-leave:active{transform:scale(0.95)}
+
+/* ══════════════════════════════════════════
+   WALLET PAGE — 移动端优化
+══════════════════════════════════════════ */
+.wallet-layout{display:flex;width:100%;height:100%;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.wallet-header{padding:14px 14px 0;flex-shrink:0}
+.wallet-body{padding:12px 14px 20px;display:flex;flex-direction:column;gap:12px}
+
+.wallet-balance-card{
+  background:linear-gradient(135deg,#1a1200,#0d0a00);
+  border:1px solid rgba(201,168,76,0.2);border-radius:20px;padding:22px 18px;
+  position:relative;overflow:hidden;
+}
+.wallet-balance-card::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at top left,rgba(201,168,76,0.08),transparent 60%)}
+.wallet-balance-label{font-size:11px;color:var(--text3);letter-spacing:.5px;margin-bottom:6px}
+.wallet-balance-total{font-family:'Playfair Display',serif;font-size:36px;font-weight:700;
+  color:var(--gold2);letter-spacing:-1px;margin-bottom:4px;line-height:1.1}
+.wallet-balance-sub{font-size:12px;color:var(--text3)}
+.wallet-addr-row{
+  display:flex;align-items:center;gap:8px;margin-top:16px;
+  background:rgba(0,0,0,0.3);border-radius:11px;padding:9px 12px;
+}
+.wallet-addr{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy-btn{font-size:11px;color:var(--gold);cursor:pointer;padding:4px 10px;
+  border-radius:8px;border:1px solid rgba(201,168,76,0.2);transition:var(--trans);flex-shrink:0}
+.copy-btn:active{background:rgba(201,168,76,0.15)}
+
+.wallet-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.wallet-action{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:14px 6px;text-align:center;cursor:pointer;transition:var(--trans);
+}
+.wallet-action:active{background:var(--surface2);transform:scale(0.96)}
+.wallet-action-icon{font-size:24px;margin-bottom:8px}
+.wallet-action-label{font-size:11px;color:var(--text2);font-weight:500}
+
+.chain-assets{
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;
+}
+.chain-assets-header{padding:18px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.chain-assets-title{font-size:15px;font-weight:700}
+.chain-selector{display:flex;gap:4px}
+.chain-sel-btn{
+  padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;
+  cursor:pointer;transition:var(--trans);border:1px solid var(--border);color:var(--text2);background:transparent;
+}
+.chain-sel-btn.active{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+
+.asset-row{
+  display:flex;align-items:center;gap:14px;padding:16px 20px;
+  border-bottom:1px solid var(--border);transition:var(--trans);cursor:pointer;
+}
+.asset-row:last-child{border-bottom:none}
+.asset-row:hover{background:var(--surface2)}
+.asset-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;font-size:22px;flex-shrink:0;background:var(--surface2)}
+.asset-info{flex:1}
+.asset-name{font-weight:600;font-size:14px;margin-bottom:2px}
+.asset-chain{font-size:11px;color:var(--text3)}
+.asset-value{text-align:right}
+.asset-amount{font-weight:600;font-size:14px;margin-bottom:2px}
+.asset-usd{font-size:11px;color:var(--text3)}
+
+.tx-history{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.tx-row{
+  display:flex;align-items:center;gap:14px;padding:14px 20px;
+  border-bottom:1px solid var(--border);transition:var(--trans);cursor:pointer;
+}
+.tx-row:last-child{border-bottom:none}
+.tx-row:hover{background:var(--surface2)}
+.tx-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:16px;flex-shrink:0}
+.tx-icon.send{background:rgba(248,113,113,0.1)}
+.tx-icon.recv{background:rgba(52,211,153,0.1)}
+.tx-icon.hb{background:rgba(248,113,113,0.1)}
+.tx-info{flex:1}
+.tx-type{font-size:13px;font-weight:600;margin-bottom:2px}
+.tx-addr{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
+.tx-val{text-align:right}
+.tx-amount{font-size:14px;font-weight:600}
+.tx-amount.send{color:var(--red)}
+.tx-amount.recv{color:var(--green)}
+.tx-time{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ══════════════════════════════════════════
+   MODALS — 移动端底部抽屉风格
+══════════════════════════════════════════ */
+.modal-overlay{
+  position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.75);
+  display:none;align-items:flex-end;justify-content:center;
+  backdrop-filter:blur(8px);padding:0;
+}
+.modal-overlay.active{display:flex;animation:modalIn .25s ease both}
+@keyframes modalIn{from{opacity:0}to{opacity:1}}
+.modal{
+  width:100%;max-width:520px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:24px 24px 0 0;padding:24px 20px calc(24px + env(safe-area-inset-bottom));
+  box-shadow:var(--shadow2);
+  animation:modalSlideUp .35s cubic-bezier(0.34,1.56,0.64,1) both;
+  max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  position:relative;
+}
+.modal::before{
+  content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:40px;height:4px;background:var(--surface3);border-radius:100px;
+}
+@keyframes modalSlideUp{from{opacity:0;transform:translateY(60px)}to{opacity:1;transform:none}}
+.modal-title{font-size:19px;font-weight:700;margin:10px 0 6px;letter-spacing:-.3px}
+.modal-sub{font-size:12px;color:var(--text2);margin-bottom:18px;line-height:1.5}
+.modal-label{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:6px;display:block;font-weight:600}
+.modal-input{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:13px 14px;font-size:15px;color:var(--text);
+  transition:var(--trans);margin-bottom:12px;
+}
+.modal-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--glow2);background:var(--surface2)}
+.modal-input::placeholder{color:var(--text3);font-size:14px}
+.modal-select{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:13px 14px;font-size:15px;color:var(--text);
+  margin-bottom:12px;cursor:pointer;transition:var(--trans);
+}
+.modal-select:focus{border-color:var(--gold)}
+.modal-row{display:flex;gap:8px}
+.modal-row .modal-input,.modal-row .btn-gold,.modal-row .btn-cancel{flex:1}
+.btn-cancel{
+  width:100%;padding:14px;border-radius:14px;font-size:14px;font-weight:600;
+  background:var(--surface);border:1px solid var(--border);color:var(--text2);
+  cursor:pointer;transition:var(--trans);
+}
+.btn-cancel:active{background:var(--surface2)}
+.modal-chain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.modal-chain-opt{
+  padding:14px 8px;border-radius:12px;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;transition:var(--trans);text-align:center;
+}
+.modal-chain-opt:hover{background:var(--surface2)}
+.modal-chain-opt.selected{border-color:var(--gold);background:rgba(201,168,76,0.1)}
+.modal-chain-opt .chain-icon{font-size:24px;margin-bottom:6px}
+.modal-chain-opt .chain-name{font-size:12px;font-weight:600;color:var(--text2)}
+.modal-chain-opt.selected .chain-name{color:var(--gold)}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+#toast-container{position:fixed;top:72px;right:16px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast-item{
+  background:var(--bg2);border:1px solid var(--border2);border-radius:14px;
+  padding:14px 18px;max-width:280px;font-size:13px;box-shadow:var(--shadow);
+  animation:toastIn .4s cubic-bezier(0.34,1.56,0.64,1) both;
+  pointer-events:all;display:flex;align-items:flex-start;gap:10px;
+}
+.toast-item.removing{animation:toastOut .3s ease both}
+@keyframes toastIn{from{opacity:0;transform:translateX(30px) scale(0.9)}to{opacity:1;transform:none}}
+@keyframes toastOut{from{opacity:1;transform:none}to{opacity:0;transform:translateX(30px) scale(0.9)}}
+.toast-icon{font-size:18px;flex-shrink:0}
+.toast-body .toast-title{font-weight:700;margin-bottom:2px}
+.toast-body .toast-msg{color:var(--text2);font-size:12px}
+
+/* ══════════════════════════════════════════
+   UTILITY
+══════════════════════════════════════════ */
+.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}
+.justify-between{justify-content:space-between}.gap-8{gap:8px}.gap-12{gap:12px}
+.mt-4{margin-top:4px}.mt-8{margin-top:8px}.mt-16{margin-top:16px}
+.text-gold{color:var(--gold)}.text-muted{color:var(--text2)}.text-sm{font-size:12px}
+.font-bold{font-weight:700}.font-mono{font-family:'DM Mono',monospace}
+.hidden{display:none!important}
+.chip{font-size:10px;padding:3px 10px;border-radius:100px;background:var(--surface);
+  border:1px solid var(--border);color:var(--text2);font-weight:500}
+
+/* Scrollbar */
+.messages-area::-webkit-scrollbar,.chat-items::-webkit-scrollbar,
+.contacts-body::-webkit-scrollbar,.wallet-body::-webkit-scrollbar,
+.meeting-layout::-webkit-scrollbar{width:3px}
+</style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<!-- ════════════════════════════════════
+     ONBOARDING
+════════════════════════════════════ -->
+<div id="onboarding">
+  <div class="ob-card">
+    <div class="ob-logo">
+      <div class="ob-logo-icon">⛓</div>
+      <h1>ChainLink</h1>
+      <p>区块链社交 · 安全会议 · 跨链转账</p>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:4px;background:rgba(255,255,255,.06);border-radius:12px;padding:4px;margin-bottom:24px">
+      <button id="ob-tab-new" onclick="obSwitchTab('new')" style="flex:1;padding:10px;border-radius:9px;border:none;background:rgba(255,255,255,.1);color:#EDEDF2;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">创建钱包</button>
+      <button id="ob-tab-imp" onclick="obSwitchTab('imp')" style="flex:1;padding:10px;border-radius:9px;border:none;background:none;color:rgba(255,255,255,.4);font-size:13px;cursor:pointer;font-family:inherit">导入私钥</button>
+    </div>
+
+    <!-- Step 1: Create -->
+    <div class="ob-step active" id="ob-step1">
+      <div class="ob-label">选择你的头像</div>
+      <div class="ob-avatar-grid" id="avatarGrid"></div>
+      <div class="ob-label">设置昵称</div>
+      <input class="ob-input" id="ob-name" placeholder="输入你的显示名称..." maxlength="20">
+      <button class="btn-gold" onclick="obNext()">生成链上身份 →</button>
+    </div>
+
+    <!-- Step 2: Show Keys -->
+    <div class="ob-step" id="ob-step2">
+      <div class="ob-label">你的链上身份已生成</div>
+      <div class="ob-key-display" id="ob-key-display"></div>
+      <div class="ob-hint">⚠️ 私钥已加密存储在本地，请立即备份助记词和私钥，丢失后无法找回。</div>
+      <button class="btn-gold" onclick="obFinish()">🔐 进入 ChainLink</button>
+    </div>
+
+    <!-- Import -->
+    <div class="ob-step" id="ob-step-imp">
+      <div class="ob-label">选择你的头像</div>
+      <div class="ob-avatar-grid" id="avatarGridImp"></div>
+      <div class="ob-label">设置昵称</div>
+      <input class="ob-input" id="ob-name-imp" placeholder="输入你的显示名称..." maxlength="20">
+      <div class="ob-label">私钥（64位Hex，含或不含0x）</div>
+      <input class="ob-input" id="ob-privkey" placeholder="0x..." style="font-family:monospace;font-size:12px">
+      <button class="btn-gold" onclick="obImport()">📥 导入钱包</button>
+      <div class="ob-hint" style="margin-top:12px">⚠️ 私钥只存储在你的本地浏览器，不会上传到任何服务器。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     MAIN APP
+════════════════════════════════════ -->
+<div id="app">
+  <div id="main">
+
+    <!-- Header -->
+    <div class="app-header">
+      <div class="app-logo">⛓ ChainLink</div>
+      <div style="margin-left:16px" id="headerChainBadge"></div>
+      <div class="header-user" id="headerUser" onclick="showProfileModal()">
+        <div class="user-av" id="headerAvatar"></div>
+        <span class="user-name" id="headerName"></span>
+        <div class="user-status"></div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="app-content">
+
+      <!-- Messages Page -->
+      <div class="page active" id="page-messages">
+        <div class="msg-layout" id="msgLayout">
+          <div class="chat-list">
+            <div class="chat-list-header">
+              <div class="page-title">消息</div>
+              <div class="search-bar">
+                <span>🔍</span>
+                <input placeholder="搜索对话..." id="chatSearchInput" oninput="filterChats(this.value)">
+              </div>
+            </div>
+            <div class="chat-items" id="chatListEl"></div>
+            <button class="new-chat-btn" onclick="showNewChatModal()">＋ 新建对话 / 群组</button>
+          </div>
+          <div class="chat-window" id="chatWindow">
+            <div id="chatActive" style="flex:1;display:flex;flex-direction:column;height:100%">
+              <div class="chat-win-header">
+                <button class="back-btn" onclick="closeCurrentChat()" title="返回">←</button>
+                <div class="chat-win-av" id="cwAvatar"></div>
+                <div style="flex:1;min-width:0">
+                  <div class="chat-win-name" id="cwName"></div>
+                  <div class="chat-win-sub" id="cwSub"></div>
+                </div>
+                <div class="chat-win-actions">
+                  <div class="icon-btn" title="语音通话" onclick="startVoiceCall()">📞</div>
+                  <div class="icon-btn" title="视频通话" onclick="startVideoCall()">📹</div>
+                  <div class="icon-btn" title="更多" onclick="toggleChatMenu(event)" style="position:relative">⋯
+                    <div class="msg-actions" id="chatMoreMenu" style="right:0;top:calc(100% + 6px);left:auto">
+                      <div class="msg-action-item" onclick="showTransferModal()">💸 转账</div>
+                      <div class="msg-action-item" onclick="showHongbaoModal()">🧧 红包</div>
+                      <div class="msg-action-sep"></div>
+                      <div class="msg-action-item danger" onclick="burnAllMessages()">🔥 销毁所有消息</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="messages-area" id="messagesArea"></div>
+              <div class="chat-input-area">
+                <div class="chat-input-toolbar">
+                  <button class="burn-picker" id="burnPicker" onclick="toggleBurnPicker(event)">
+                    <span>🔥</span><span id="burnPickerLabel">普通</span>
+                    <div class="msg-actions" id="burnPickerMenu" style="left:0;top:auto;bottom:calc(100% + 6px)">
+                      <div class="msg-action-item" onclick="setBurnMode('none','普通消息')">💬 普通消息</div>
+                      <div class="msg-action-sep"></div>
+                      <div class="msg-action-item" onclick="setBurnMode(5,'5 秒后销毁')">⏱ 5 秒后销毁</div>
+                      <div class="msg-action-item" onclick="setBurnMode(30,'30 秒后销毁')">⏱ 30 秒后销毁</div>
+                      <div class="msg-action-item" onclick="setBurnMode(60,'1 分钟后销毁')">⏱ 1 分钟后销毁</div>
+                      <div class="msg-action-item" onclick="setBurnMode(3600,'1 小时后销毁')">⏱ 1 小时后销毁</div>
+                      <div class="msg-action-sep"></div>
+                      <div class="msg-action-item" onclick="setBurnMode('read','阅后即焚')">👁 阅后即焚</div>
+                    </div>
+                  </button>
+                  <button class="toolbar-btn" onclick="showTransferModal()"><span>💸</span> 转账</button>
+                  <button class="toolbar-btn" onclick="showHongbaoModal()"><span>🧧</span> 红包</button>
+                  <button class="toolbar-btn" onclick="sendEmoji('👍')"><span>👍</span></button>
+                  <button class="toolbar-btn" onclick="sendEmoji('❤️')"><span>❤️</span></button>
+                  <button class="toolbar-btn" onclick="sendEmoji('🔥')"><span>🔥</span></button>
+                  <button class="toolbar-btn" onclick="sendEmoji('🚀')"><span>🚀</span></button>
+                </div>
+                <div class="chat-input-row">
+                  <textarea class="chat-input-box" id="msgInput" placeholder="发送加密消息..." rows="1"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+                    oninput="autoResize(this)"></textarea>
+                  <div class="send-btn" onclick="sendMessage()">↑</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contacts Page -->
+      <div class="page" id="page-contacts">
+        <div class="contacts-layout">
+          <div class="contacts-header">
+            <div class="page-title">联系人</div>
+            <div class="contacts-tabs">
+              <div class="ctab active" onclick="switchContactTab(this,'friends')">好友</div>
+              <div class="ctab" onclick="switchContactTab(this,'groups')">群组</div>
+              <div class="ctab" onclick="switchContactTab(this,'requests')">好友申请 <span id="reqBadge"></span></div>
+            </div>
+          </div>
+          <div class="contacts-body" id="contactsBody"></div>
+        </div>
+      </div>
+
+      <!-- Meeting Page -->
+      <div class="page" id="page-meeting">
+        <div class="meeting-layout">
+          <div class="meeting-header">
+            <div class="page-title">会议</div>
+            <div class="text-muted text-sm" style="margin-top:4px">基于 WebRTC 的 P2P 加密会议</div>
+          </div>
+          <div class="meeting-grid" id="meetingGrid"></div>
+        </div>
+      </div>
+
+      <!-- Wallet Page -->
+      <div class="page" id="page-wallet">
+        <div class="wallet-layout">
+          <div class="wallet-header">
+            <div class="page-title">钱包</div>
+          </div>
+          <div class="wallet-body" id="walletBody"></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+      <div class="nav-item active" onclick="switchPage('messages',this)" id="nav-messages">
+        <div class="nav-icon">💬</div>
+        <div class="nav-label">消息</div>
+        <div class="nav-badge hidden" id="msgBadge">3</div>
+      </div>
+      <div class="nav-item" onclick="switchPage('contacts',this)" id="nav-contacts">
+        <div class="nav-icon">👥</div>
+        <div class="nav-label">联系人</div>
+      </div>
+      <div class="nav-item" onclick="switchPage('meeting',this)" id="nav-meeting">
+        <div class="nav-icon">🎙</div>
+        <div class="nav-label">会议</div>
+      </div>
+      <div class="nav-item" onclick="switchPage('wallet',this)" id="nav-wallet">
+        <div class="nav-icon">💰</div>
+        <div class="nav-label">钱包</div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div>
+
+<!-- ════════════════════════════════════
+     MEETING OVERLAY
+════════════════════════════════════ -->
+<div id="meeting-overlay">
+  <div class="meeting-top-bar">
+    <span>🔴</span>
+    <div class="meeting-room-name" id="meetingRoomName"></div>
+    <div class="meeting-timer" id="meetingTimer">00:00</div>
+    <button class="meeting-end-btn" onclick="leaveMeeting()">结束会议</button>
+  </div>
+  <div class="video-grid" id="videoGrid"></div>
+  <div class="meeting-controls">
+    <div class="ctrl-wrap">
+      <div class="ctrl-btn" id="ctrl-mic" onclick="toggleCtrl('mic')"><span class="ctrl-icon">🎙</span></div>
+      <div class="ctrl-label">麦克风</div>
+    </div>
+    <div class="ctrl-wrap">
+      <div class="ctrl-btn" id="ctrl-cam" onclick="toggleCtrl('cam')"><span class="ctrl-icon">📹</span></div>
+      <div class="ctrl-label">摄像头</div>
+    </div>
+    <div class="ctrl-wrap">
+      <div class="ctrl-btn" id="ctrl-screen" onclick="toggleCtrl('screen')"><span class="ctrl-icon">🖥</span></div>
+      <div class="ctrl-label">共享屏幕</div>
+    </div>
+    <div class="ctrl-wrap">
+      <div class="ctrl-btn" id="ctrl-chat" onclick="toggleMeetingChat()"><span class="ctrl-icon">💬</span></div>
+      <div class="ctrl-label">聊天</div>
+    </div>
+    <div class="ctrl-wrap">
+      <div class="ctrl-btn" id="ctrl-participants" onclick="showParticipants()"><span class="ctrl-icon">👥</span></div>
+      <div class="ctrl-label">成员</div>
+    </div>
+    <button class="ctrl-leave" onclick="leaveMeeting()">挂断</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     MODALS
+════════════════════════════════════ -->
+
+<!-- New Chat Modal -->
+<div class="modal-overlay" id="modal-newchat">
+  <div class="modal">
+    <div class="modal-title">新建对话</div>
+    <div class="modal-sub">输入对方的链上地址或选择联系人</div>
+    <label class="modal-label">链上地址 / 昵称</label>
+    <input class="modal-input" id="nc-addr" placeholder="0x... 或 联系人昵称">
+    <label class="modal-label">消息类型</label>
+    <select class="modal-select" id="nc-type">
+      <option value="dm">私聊</option>
+      <option value="group">创建群组</option>
+    </select>
+    <div id="nc-group-name-row" style="display:none">
+      <label class="modal-label">群组名称</label>
+      <input class="modal-input" id="nc-group-name" placeholder="输入群组名称...">
+    </div>
+    <div class="modal-row" style="gap:10px;margin-top:4px">
+      <button class="btn-cancel" onclick="closeModal('modal-newchat')">取消</button>
+      <button class="btn-gold" onclick="createChat()">开始聊天</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transfer Modal -->
+<div class="modal-overlay" id="modal-transfer">
+  <div class="modal">
+    <div class="modal-title">链内转账</div>
+    <div class="modal-sub">消息内转账，P2P 加密，链上存证</div>
+    <label class="modal-label">选择链</label>
+    <div class="modal-chain-grid">
+      <div class="modal-chain-opt selected" data-chain="BSC" onclick="selectChain(this)">
+        <div class="chain-icon">🟡</div><div class="chain-name">BSC</div>
+      </div>
+      <div class="modal-chain-opt" data-chain="ETH" onclick="selectChain(this)">
+        <div class="chain-icon">🔵</div><div class="chain-name">ETH</div>
+      </div>
+      <div class="modal-chain-opt" data-chain="TRON" onclick="selectChain(this)">
+        <div class="chain-icon">🔴</div><div class="chain-name">TRON</div>
+      </div>
+    </div>
+    <label class="modal-label">转账金额</label>
+    <div style="position:relative">
+      <input class="modal-input" id="tf-amount" type="number" placeholder="0.00" step="0.001">
+      <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px" id="tf-unit">BNB</span>
+    </div>
+    <label class="modal-label">留言（可选）</label>
+    <input class="modal-input" id="tf-memo" placeholder="转账备注...">
+    <div class="modal-row" style="gap:10px">
+      <button class="btn-cancel" onclick="closeModal('modal-transfer')">取消</button>
+      <button class="btn-gold" onclick="doTransfer()">确认转账</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hongbao Modal -->
+<div class="modal-overlay" id="modal-hongbao">
+  <div class="modal">
+    <div class="modal-title">🧧 发红包</div>
+    <div class="modal-sub">惊喜红包，抢先领取，链上记录</div>
+    <label class="modal-label">红包总金额</label>
+    <div style="position:relative">
+      <input class="modal-input" id="hb-amount" type="number" placeholder="0.00" step="0.001">
+      <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px">BNB</span>
+    </div>
+    <label class="modal-label">红包数量</label>
+    <input class="modal-input" id="hb-count" type="number" placeholder="1" min="1" max="100" value="1">
+    <label class="modal-label">祝福语</label>
+    <input class="modal-input" id="hb-msg" placeholder="恭喜发财，大吉大利！" value="恭喜发财，大吉大利！">
+    <div class="modal-row" style="gap:10px">
+      <button class="btn-cancel" onclick="closeModal('modal-hongbao')">取消</button>
+      <button class="btn-gold" onclick="doHongbao()">发红包 🧧</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Meeting Modal -->
+<div class="modal-overlay" id="modal-meeting">
+  <div class="modal">
+    <div class="modal-title">创建会议</div>
+    <div class="modal-sub">WebRTC P2P 加密会议，无服务器</div>
+    <label class="modal-label">会议主题</label>
+    <input class="modal-input" id="mt-name" placeholder="输入会议主题...">
+    <label class="modal-label">会议类型</label>
+    <select class="modal-select" id="mt-type">
+      <option value="audio">仅语音</option>
+      <option value="video">视频会议</option>
+      <option value="screen">屏幕共享</option>
+    </select>
+    <label class="modal-label">最大参会人数</label>
+    <select class="modal-select" id="mt-max">
+      <option value="2">2 人</option>
+      <option value="5">5 人</option>
+      <option value="10">10 人</option>
+      <option value="20">20 人</option>
+    </select>
+    <div class="modal-row" style="gap:10px">
+      <button class="btn-cancel" onclick="closeModal('modal-meeting')">取消</button>
+      <button class="btn-gold" onclick="createMeeting()">开始会议</button>
+    </div>
+  </div>
+</div>
+
+<!-- Big Transfer Confirmation Modal -->
+<div class="modal-overlay" id="modal-confirm-big">
+  <div class="modal" style="border:2px solid rgba(248,113,113,0.4)">
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:44px;margin-bottom:8px">⚠️</div>
+      <div class="modal-title" style="color:var(--red)">大额转账二次确认</div>
+      <div class="modal-sub">超过测试阈值，请仔细核对后确认</div>
+    </div>
+
+    <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);border-radius:14px;padding:16px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+        <span style="color:var(--text3)">网络</span>
+        <span id="cfm-chain" style="color:var(--gold)"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+        <span style="color:var(--text3)">收款地址</span>
+        <span id="cfm-to" style="color:var(--text);font-family:'DM Mono',monospace;font-size:10px"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+        <span style="color:var(--text3)">金额</span>
+        <span id="cfm-amt" style="color:var(--red);font-weight:700;font-size:16px"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px">
+        <span style="color:var(--text3)">USD 估值</span>
+        <span id="cfm-usd" style="color:var(--text2)"></span>
+      </div>
+    </div>
+
+    <label class="modal-label" style="color:var(--red)">输入确认短语：TRANSFER</label>
+    <input class="modal-input" id="cfm-phrase" placeholder="请输入 TRANSFER 继续..." autocomplete="off" style="font-family:'DM Mono',monospace;border-color:rgba(248,113,113,0.3)">
+
+    <div style="font-size:11px;color:var(--text3);line-height:1.6;margin:10px 0 16px;padding:10px;background:rgba(255,255,255,0.03);border-radius:10px">
+      📋 <strong style="color:var(--text2)">检查清单：</strong><br>
+      ✓ 收款地址与预期一致（前 6 位 + 后 4 位）<br>
+      ✓ 网络正确（BSC/ETH 不可互转）<br>
+      ✓ 金额无误<br>
+      ✓ 对方能收到（非合约地址）
+    </div>
+
+    <div class="modal-row" style="gap:10px">
+      <button class="btn-cancel" onclick="cancelBigTransfer()">取消</button>
+      <button class="btn-gold" id="cfm-confirm-btn" onclick="confirmBigTransfer()" style="background:linear-gradient(135deg,#F87171,#991B1B);color:#fff">确认转账</button>
+    </div>
+  </div>
+</div>
+
+<!-- Wallet Send Modal (直接从钱包页发起，可输入任意地址) -->
+<div class="modal-overlay" id="modal-wallet-send">
+  <div class="modal">
+    <div class="modal-title">↑ 发送资产</div>
+    <div class="modal-sub">从钱包直接向任意链上地址转账</div>
+
+    <label class="modal-label">选择链</label>
+    <div class="modal-chain-grid" style="grid-template-columns:repeat(2,1fr)">
+      <div class="modal-chain-opt selected" data-wchain="BSC" onclick="wSelectChain(this)">
+        <div class="chain-icon">🟡</div><div class="chain-name">BSC</div>
+      </div>
+      <div class="modal-chain-opt" data-wchain="ETH" onclick="wSelectChain(this)">
+        <div class="chain-icon">🔵</div><div class="chain-name">ETH</div>
+      </div>
+    </div>
+
+    <label class="modal-label">收款地址（0x...）</label>
+    <input class="modal-input" id="ws-to" placeholder="0x 开头的 42 位以太坊格式地址" style="font-family:'DM Mono',monospace;font-size:12px">
+
+    <label class="modal-label">金额</label>
+    <div style="position:relative">
+      <input class="modal-input" id="ws-amount" type="number" placeholder="0.00" step="0.0001" min="0">
+      <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px" id="ws-unit">BNB</span>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--text2)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <span>当前余额</span><span id="ws-balance" style="color:var(--gold2);font-weight:600">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <span>预估 Gas</span><span id="ws-gas" style="color:var(--text2)">~0.00002 BNB</span>
+      </div>
+    </div>
+
+    <div class="modal-row" style="gap:10px">
+      <button class="btn-cancel" onclick="closeModal('modal-wallet-send')">取消</button>
+      <button class="btn-gold" onclick="doWalletTransfer()">确认发送</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receive Modal (显示地址 + 二维码 + 支持的链) -->
+<div class="modal-overlay" id="modal-receive">
+  <div class="modal">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:44px;margin-bottom:8px">↓</div>
+      <div class="modal-title">收款</div>
+      <div class="modal-sub">分享地址给对方，即可收到 BSC / ETH 资产</div>
+    </div>
+
+    <!-- QR Placeholder -->
+    <div id="recv-qr-wrap" style="width:200px;height:200px;margin:0 auto 16px;background:#fff;border-radius:14px;padding:12px;display:flex;align-items:center;justify-content:center">
+      <div id="recv-qr" style="width:100%;height:100%"></div>
+    </div>
+
+    <label class="modal-label">我的地址（ETH/BSC 通用）</label>
+    <div class="ob-key-display" style="cursor:pointer;text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--gold2);line-height:1.8" onclick="copyMyAddr()">
+      <span id="recv-addr-val"></span>
+    </div>
+
+    <div style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.2);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:11px;color:var(--green);line-height:1.7">
+      ✓ <strong>该地址同时支持：</strong><br>
+      • BSC 主网 BNB、USDT(BEP20)、USDC(BEP20)<br>
+      • ETH 主网 ETH、USDT(ERC20)、USDC(ERC20)<br>
+      ⚠️ <strong>不支持：</strong>BTC、TRON、Solana 等非 EVM 链
+    </div>
+
+    <div class="modal-row" style="gap:10px">
+      <button class="btn-cancel" onclick="closeModal('modal-receive')">关闭</button>
+      <button class="btn-gold" onclick="copyMyAddr()">📋 复制地址</button>
+    </div>
+  </div>
+</div>
+
+<!-- TX Detail Modal -->
+<div class="modal-overlay" id="modal-tx-detail">
+  <div class="modal">
+    <div style="text-align:center;margin-bottom:18px">
+      <div id="txd-icon" style="font-size:44px;margin-bottom:8px">↑</div>
+      <div id="txd-title" class="modal-title">交易详情</div>
+      <div id="txd-status" class="modal-sub">—</div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px 16px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+        <span style="color:var(--text3)">类型</span>
+        <span id="txd-type" style="color:var(--text)">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+        <span style="color:var(--text3)">网络</span>
+        <span id="txd-chain" style="color:var(--gold2)">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+        <span style="color:var(--text3)">金额</span>
+        <span id="txd-amount" style="color:var(--text);font-weight:700;font-size:15px">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+        <span style="color:var(--text3)">对方</span>
+        <span id="txd-peer" style="color:var(--text);font-family:'DM Mono',monospace;font-size:10px">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;font-size:12px">
+        <span style="color:var(--text3)">时间</span>
+        <span id="txd-time" style="color:var(--text2)">—</span>
+      </div>
+    </div>
+
+    <div id="txd-hash-wrap" style="display:none;margin-bottom:14px">
+      <label class="modal-label">交易哈希（Hash）</label>
+      <div class="ob-key-display" style="cursor:pointer;font-size:10px;line-height:1.7" onclick="copyTxHash()">
+        <span id="txd-hash"></span>
+        <span style="display:block;margin-top:6px;color:var(--text3);font-family:'DM Sans',sans-serif;font-size:10px">点击复制</span>
+      </div>
+    </div>
+
+    <div id="txd-explorer-wrap" style="display:none;margin-bottom:14px">
+      <button class="btn-gold" id="txd-explorer-btn" onclick="openInExplorer()" style="display:flex;align-items:center;justify-content:center;gap:8px">
+        🔍 在区块浏览器中查看 ↗
+      </button>
+    </div>
+
+    <button class="btn-cancel" onclick="closeModal('modal-tx-detail')">关闭</button>
+  </div>
+</div>
+
+<!-- Asset Detail Modal -->
+<div class="modal-overlay" id="modal-asset-detail">
+  <div class="modal">
+    <div style="text-align:center;margin-bottom:18px">
+      <div id="asd-icon" style="font-size:52px;margin-bottom:8px">🟡</div>
+      <div id="asd-name" class="modal-title" style="font-size:24px">—</div>
+      <div id="asd-chain" class="modal-sub">—</div>
+    </div>
+
+    <!-- 余额展示 -->
+    <div style="background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(201,168,76,0.03));border:1px solid rgba(201,168,76,0.2);border-radius:16px;padding:20px;text-align:center;margin-bottom:16px">
+      <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px">我的余额</div>
+      <div id="asd-balance" style="font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--gold2);letter-spacing:-.5px">—</div>
+      <div id="asd-usd" style="font-size:13px;color:var(--text2);margin-top:4px">≈ $—</div>
+    </div>
+
+    <!-- 详细信息 -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px 16px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+        <span style="color:var(--text3)">资产类型</span>
+        <span id="asd-type" style="color:var(--text)">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+        <span style="color:var(--text3)">网络</span>
+        <span id="asd-network" style="color:var(--gold2)">—</span>
+      </div>
+      <div id="asd-contract-row" style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+        <span style="color:var(--text3)">合约地址</span>
+        <span id="asd-contract" style="color:var(--text);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer" onclick="copyAssetContract()">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px">
+        <span style="color:var(--text3)">精度</span>
+        <span id="asd-decimals" style="color:var(--text)">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;font-size:12px">
+        <span style="color:var(--text3)">当前价格</span>
+        <span id="asd-price" style="color:var(--text)">—</span>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <button class="btn-gold" style="padding:13px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="asdSend()">
+        <span>↑</span> 发送
+      </button>
+      <button style="padding:13px;border-radius:14px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:var(--trans)" onclick="asdReceive()">
+        <span>↓</span> 收款
+      </button>
+    </div>
+    <button id="asd-explorer-btn" style="width:100%;padding:12px;border-radius:14px;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="asdOpenExplorer()">
+      🔍 在区块浏览器中查看资产
+    </button>
+
+    <button class="btn-cancel" onclick="closeModal('modal-asset-detail')">关闭</button>
+  </div>
+</div>
+
+<!-- Profile Modal -->
+<div class="modal-overlay" id="modal-profile">
+  <div class="modal">
+    <div style="text-align:center;margin-bottom:24px">
+      <div id="prof-av" style="font-size:52px;margin-bottom:12px"></div>
+      <div id="prof-name" style="font-size:22px;font-weight:700;letter-spacing:-.3px"></div>
+      <div class="chip" style="margin-top:8px;display:inline-block">🟢 在线</div>
+    </div>
+    <label class="modal-label">我的链上地址</label>
+    <div class="ob-key-display" id="prof-addr" style="cursor:pointer" onclick="copyMyAddr()">
+      <span>地址</span>
+      <span id="prof-addr-val"></span>
+    </div>
+    <label class="modal-label">公钥</label>
+    <div class="ob-key-display" style="font-size:9px">
+      <span>公钥</span>
+      <span id="prof-pubkey"></span>
+    </div>
+    <label class="modal-label">支持的链</label>
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <span class="chain-badge bsc">BSC</span>
+      <span class="chain-badge eth">ETH</span>
+      <span class="chain-badge tron">TRON</span>
+    </div>
+
+    <!-- 导出私钥区域 -->
+    <label class="modal-label">🔐 导出私钥（到 MetaMask / 备份）</label>
+    <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);border-radius:12px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--red);line-height:1.6;margin-bottom:10px">
+        ⚠️ <strong>安全提示：</strong>私钥是你资产的唯一凭证。导出后请立即在 MetaMask 中导入，或抄写到纸上离线保存，不要截图、不要发送给任何人。
+      </div>
+      <button id="prof-reveal-btn" onclick="revealPrivateKey()" style="width:100%;padding:10px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">
+        👁 点击显示私钥（需确认）
+      </button>
+      <div id="prof-pk-display" style="display:none;margin-top:10px">
+        <div class="ob-key-display" style="font-size:10px;color:var(--red);cursor:pointer" onclick="copyMyPK()">
+          <span style="color:var(--text3)">私钥（点击复制）</span>
+          <span id="prof-pk-val"></span>
+        </div>
+        <div style="font-size:10px;color:var(--text3);line-height:1.6;padding:8px 10px;background:var(--bg);border-radius:8px">
+          📖 <strong style="color:var(--text2)">导入 MetaMask 步骤：</strong><br>
+          1. 打开 MetaMask → 右上角账户图标<br>
+          2. 选择「导入账户」<br>
+          3. 粘贴上面的私钥 → 导入<br>
+          4. 切换到 BSC 网络即可管理资产
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text3)">助记词：<span id="prof-mnemonic" style="color:var(--gold2);font-family:'DM Mono',monospace;font-size:10px">点击显示后可见</span></div>
+    </div>
+
+    <button class="btn-cancel" onclick="closeModal('modal-profile')">关闭</button>
+    <button onclick="logoutWallet()" style="width:100%;margin-top:8px;padding:14px;border-radius:14px;background:rgba(241,107,107,.1);border:1px solid rgba(241,107,107,.25);color:#F16B6B;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">🚪 退出登录</button>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// CHAIN RPC CONFIG — 公共节点，无需 API Key
+// ══════════════════════════════════════════════════════════════════
+const RPC_CHAINS = {
+  BSC: {
+    name:'BNB Smart Chain', sym:'BNB', chainId:56, dec:18,
+    explorer:'https://bscscan.com',
+    rpcs:[
+      'https://bsc-dataseed.binance.org/',
+      'https://bsc-dataseed1.defibit.io/',
+      'https://bsc-dataseed1.ninicoin.io/',
+      'https://bsc-dataseed2.defibit.io/',
+      'https://bsc-dataseed3.defibit.io/',
+      'https://bsc-dataseed4.defibit.io/',
+    ],
+    tokens:[
+      {sym:'USDT',addr:'0x55d398326f99059fF775485246999027B3197955',dec:18,icon:'💚'},
+      {sym:'USDC',addr:'0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',dec:18,icon:'🔵'},
+    ],
+  },
+  ETH: {
+    name:'Ethereum', sym:'ETH', chainId:1, dec:18,
+    explorer:'https://etherscan.io',
+    rpcs:[
+      'https://rpc.flashbots.net',
+      'https://ethereum.publicnode.com',
+      'https://1rpc.io/eth',
+      'https://endpoints.omniatech.io/v1/eth/mainnet/public',
+    ],
+    tokens:[
+      {sym:'USDT',addr:'0xdAC17F958D2ee523a2206206994597C13D831ec7',dec:6,icon:'💚'},
+      {sym:'USDC',addr:'0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',dec:6,icon:'🔵'},
+    ],
+  },
+};
+
+// ── AES-GCM 加密/解密私钥 ──
+const _enc = new TextEncoder(), _dec = new TextDecoder();
+const _b64 = u8=>btoa(String.fromCharCode(...u8));
+const _unb64 = s=>new Uint8Array(atob(s).split('').map(c=>c.charCodeAt(0)));
+async function encryptPrivKey(priv, pwd) {
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const km=await crypto.subtle.importKey('raw',_enc.encode(pwd),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt']);
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,_enc.encode(priv));
+  return {ct:_b64(new Uint8Array(ct)),iv:_b64(iv),salt:_b64(salt)};
+}
+async function decryptPrivKey(obj, pwd) {
+  const km=await crypto.subtle.importKey('raw',_enc.encode(pwd),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:_unb64(obj.salt),iterations:200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(obj.iv)},key,_unb64(obj.ct));
+  return _dec.decode(pt);
+}
+
+// ── RPC 调用（多节点自动 fallback）──
+async function callRPC(chain, method, params=[]) {
+  const rpcs = RPC_CHAINS[chain]?.rpcs || [];
+  for (const url of rpcs) {
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc:'2.0', id:1, method, params }),
+        signal: AbortSignal.timeout(10000),
+        mode: 'cors',
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d = await r.json();
+      if (d.error) throw new Error(d.error.message);
+      return d.result;
+    } catch(e) {
+      console.warn(url, e.message);
+    }
+  }
+  throw new Error(chain + ' RPC 全部失败');
+}
+
+// ── 链上真实余额获取 ──
+async function fetchChainBalance(chain, address) {
+  const hexBal = await callRPC(chain,'eth_getBalance',[address,'latest']);
+  return parseFloat(ethers.utils.formatEther(hexBal));
+}
+async function fetchTokenBalance(chain, tokenAddr, walletAddr, dec) {
+  const data = '0x70a08231' + '000000000000000000000000' + walletAddr.replace('0x','').toLowerCase();
+  const hex  = await callRPC(chain, 'eth_call', [{to:tokenAddr, data}, 'latest']);
+  // 空响应或 0x 直接返回 0
+  if (!hex || hex === '0x' || hex === '0x0') return 0;
+  try {
+    const val = parseFloat(ethers.utils.formatUnits(hex, dec));
+    return isFinite(val) ? val : 0;
+  } catch(e) {
+    console.warn('formatUnits failed:', hex, dec, e.message);
+    return 0;
+  }
+}
+async function fetchGasPrice(chain) {
+  const hex = await callRPC(chain,'eth_gasPrice');
+  return parseFloat(parseFloat(ethers.utils.formatUnits(hex,'gwei')).toFixed(2));
+}
+async function fetchNonce(chain, address) {
+  const hex = await callRPC(chain,'eth_getTransactionCount',[address,'latest']);
+  return parseInt(hex,16);
+}
+async function fetchBlockNumber(chain) {
+  const hex = await callRPC(chain,'eth_blockNumber');
+  return parseInt(hex,16);
+}
+
+// ── 价格（CoinGecko 公共 API）──
+async function fetchPrices() {
+  try {
+    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=binancecoin,ethereum&vs_currencies=usd',{signal:AbortSignal.timeout(6000)});
+    const d=await r.json();
+    App.prices = { BNB: d?.binancecoin?.usd||600, ETH: d?.ethereum?.usd||2500 };
+  } catch { App.prices = App.prices||{BNB:600,ETH:2500}; }
+}
+
+// ── 兼容旧 Crypto.randomHex ──
+const Crypto = {
+  randomHex(len=32){ return Array.from(crypto.getRandomValues(new Uint8Array(len))).map(b=>b.toString(16).padStart(2,'0')).join(''); },
+};
+
+// ══════════════════════════════════════════════════════════════════
+// LOCAL STORAGE (IndexedDB wrapper)
+// ══════════════════════════════════════════════════════════════════
+const DB = {
+  db: null,
+  async open() {
+    return new Promise((res,rej)=>{
+      const req = indexedDB.open('ChainLink',1);
+      req.onupgradeneeded = e=>{
+        const db = e.target.result;
+        if(!db.objectStoreNames.contains('identity')) db.createObjectStore('identity');
+        if(!db.objectStoreNames.contains('chats'))    db.createObjectStore('chats',{keyPath:'id'});
+        if(!db.objectStoreNames.contains('messages')) db.createObjectStore('messages',{keyPath:'id',autoIncrement:true});
+        if(!db.objectStoreNames.contains('contacts')) db.createObjectStore('contacts',{keyPath:'addr'});
+        if(!db.objectStoreNames.contains('wallet'))   db.createObjectStore('wallet');
+      };
+      req.onsuccess = e=>{ this.db=e.target.result; res(); };
+      req.onerror   = ()=>rej(req.error);
+    });
+  },
+  async set(store,key,val){
+    return new Promise((res,rej)=>{
+      const tx = this.db.transaction(store,'readwrite');
+      tx.objectStore(store).put(val,key);
+      tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+    });
+  },
+  async get(store,key){
+    return new Promise((res,rej)=>{
+      const tx = this.db.transaction(store,'readonly');
+      const req = tx.objectStore(store).get(key);
+      req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error);
+    });
+  },
+  async getAll(store){
+    return new Promise((res,rej)=>{
+      const tx = this.db.transaction(store,'readonly');
+      const req = tx.objectStore(store).getAll();
+      req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error);
+    });
+  },
+  async add(store,val){
+    return new Promise((res,rej)=>{
+      const tx = this.db.transaction(store,'readwrite');
+      const req = tx.objectStore(store).add(val);
+      req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error);
+    });
+  },
+  async put(store,val){
+    return new Promise((res,rej)=>{
+      const tx = this.db.transaction(store,'readwrite');
+      const req = tx.objectStore(store).put(val);
+      req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error);
+    });
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════
+// APP STATE
+// ══════════════════════════════════════════════════════════════════
+const App = {
+  identity: null,   // { name, avatar, address, privKey(encrypted), ethersWallet }
+  ethersWallet: null, // ethers.Wallet instance (in-memory only)
+  chats: [],
+  contacts: [],
+  currentChat: null,
+  meetingTimer: null,
+  meetingSeconds: 0,
+  currentContactTab: 'friends',
+  selectedChain: 'BSC',
+  prices: { BNB:600, ETH:2500 },
+  wallet: {
+    BSC:  { BNB: 0, USDT: 0 },
+    ETH:  { ETH: 0, USDC: 0 },
+    TRON: { TRX: 0, USDT: 0 },
+  },
+  txHistory: [],
+};
+
+// Avatars
+const AVATARS = ['🦁','🐯','🦊','🐺','🦝','🐻','🐼','🐨','🦄','🐉','🦋','🦅','🦁','🐸','🦀','🐬','🦈','🌙'];
+const CHAIN_UNITS = { BSC:'BNB', ETH:'ETH', TRON:'TRX' };
+
+// ══════════════════════════════════════════════════════════════════
+// ONBOARDING
+// ══════════════════════════════════════════════════════════════════
+let selectedAvatar = '🦁';
+let generatedIdentity = null;
+
+function initAvatarGrid() {
+  const g = document.getElementById('avatarGrid');
+  g.innerHTML = AVATARS.map((a,i)=>`
+    <div class="av-opt ${i===0?'selected':''}" onclick="selectAvatar(this,'${a}')">${a}</div>
+  `).join('');
+}
+
+function selectAvatar(el, av) {
+  document.querySelectorAll('#avatarGrid .av-opt').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAvatar = av;
+}
+
+function obSwitchTab(tab) {
+  const isNew = tab === 'new';
+  document.getElementById('ob-tab-new').style.background = isNew ? 'rgba(255,255,255,.1)' : 'none';
+  document.getElementById('ob-tab-new').style.color = isNew ? '#EDEDF2' : 'rgba(255,255,255,.4)';
+  document.getElementById('ob-tab-imp').style.background = !isNew ? 'rgba(255,255,255,.1)' : 'none';
+  document.getElementById('ob-tab-imp').style.color = !isNew ? '#EDEDF2' : 'rgba(255,255,255,.4)';
+  document.querySelectorAll('.ob-step').forEach(s => s.classList.remove('active'));
+  document.getElementById(isNew ? 'ob-step1' : 'ob-step-imp').classList.add('active');
+  if (!isNew) {
+    const g = document.getElementById('avatarGridImp');
+    if (g && !g.children.length) {
+      g.innerHTML = AVATARS.map((a,i) => `<div class="av-opt ${i===0?'selected':''}" onclick="selectAvatarImp(this,'${a}')">${a}</div>`).join('');
+    }
+  }
+}
+
+let selectedAvatarImp = '🦁';
+function selectAvatarImp(el, av) {
+  document.querySelectorAll('#avatarGridImp .av-opt').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAvatarImp = av;
+}
+
+async function obImport() {
+  const name = document.getElementById('ob-name-imp').value.trim();
+  let pk = document.getElementById('ob-privkey').value.trim();
+  if (!name) { showToast('请输入昵称','','⚠️'); return; }
+  if (!pk)   { showToast('请输入私钥','','⚠️'); return; }
+  if (typeof ethers === 'undefined') { showToast('ethers.js 未加载','请检查网络','❌'); return; }
+  if (!pk.startsWith('0x')) pk = '0x' + pk;
+  if (!/^0x[0-9a-fA-F]{64}$/.test(pk)) { showToast('私钥格式错误','应为64位十六进制','⚠️'); return; }
+  try {
+    const wallet = new ethers.Wallet(pk);
+    const encrypted = await encryptPrivKey(pk, wallet.address);
+    await DB.set('identity', 'me', {
+      name, avatar: selectedAvatarImp,
+      address: wallet.address,
+      privKeyEnc: encrypted,
+      mnemonic: '（导入钱包，无助记词）',
+    });
+    App.identity     = { name, avatar: selectedAvatarImp, address: wallet.address, mnemonic: '（导入）' };
+    App.ethersWallet = wallet;
+    showToast('✓ 导入成功', wallet.address.slice(0,12)+'...', '✅');
+    initApp();
+  } catch(e) { showToast('导入失败', e.message.slice(0,60), '❌'); }
+}
+
+async function obNext() {
+  const name = document.getElementById('ob-name').value.trim();
+  if (!name) { showToast('提示','请先输入你的昵称','⚠️'); return; }
+  if (typeof ethers === 'undefined') { showToast('错误','ethers.js 未加载，请检查网络','❌'); return; }
+
+  showToast('生成中','正在生成真实 secp256k1 链上身份...','⛓');
+
+  // ethers.js 真实 secp256k1 密钥对
+  const wallet   = ethers.Wallet.createRandom();
+  const address  = wallet.address;       // 真实以太坊地址
+  const privKey  = wallet.privateKey;    // 真实私钥
+  const mnemonic = wallet.mnemonic.phrase; // 真实助记词
+
+  // AES-GCM 加密私钥，用地址作密码（可后续改为用户密码）
+  const encrypted = await encryptPrivKey(privKey, address);
+  generatedIdentity = { name, avatar: selectedAvatar, address, privKeyEnc: encrypted, mnemonic };
+  // 保存 ethers.Wallet 实例到内存
+  generatedIdentity._ethersWallet = wallet;
+
+  document.getElementById('ob-key-display').innerHTML = `
+    <span>地址（可直接收 BSC/ETH 转账）</span>${address}
+    <span style="margin-top:12px">助记词（12词，请离线备份）</span>${mnemonic}
+    <span style="margin-top:12px">私钥（请妥善保存）</span><span style="color:var(--red)">${privKey}</span>
+  `;
+  document.getElementById('ob-step1').classList.remove('active');
+  document.getElementById('ob-step2').classList.add('active');
+}
+
+async function obFinish() {
+  if (!generatedIdentity) return;
+  await DB.set('identity','me', {
+    name: generatedIdentity.name,
+    avatar: generatedIdentity.avatar,
+    address: generatedIdentity.address,
+    privKeyEnc: generatedIdentity.privKeyEnc,
+    mnemonic: generatedIdentity.mnemonic,
+  });
+  App.identity      = generatedIdentity;
+  App.ethersWallet  = generatedIdentity._ethersWallet;
+  initApp();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INIT APP
+// ══════════════════════════════════════════════════════════════════
+async function initApp() {
+  document.getElementById('onboarding').style.animation='cardIn .4s ease reverse both';
+  setTimeout(()=>{ document.getElementById('onboarding').style.display='none'; }, 400);
+  document.getElementById('main').classList.add('visible');
+
+  document.getElementById('headerAvatar').textContent = App.identity.avatar;
+  document.getElementById('headerName').textContent   = App.identity.name;
+  document.getElementById('headerChainBadge').innerHTML = '<span class="chip">⛓ BSC · ETH</span>';
+
+  document.getElementById('prof-av').textContent   = App.identity.avatar;
+  document.getElementById('prof-name').textContent  = App.identity.name;
+  document.getElementById('prof-addr-val').textContent = App.identity.address;
+  document.getElementById('prof-pubkey').textContent = App.ethersWallet
+    ? App.ethersWallet.publicKey
+    : '（重新登录后可见）';
+
+  seedDemoData();
+  renderChatList();
+  renderContacts();
+  renderMeeting();
+  renderWallet();
+  // 异步拉真实链上数据
+  loadRealWalletData();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DEMO DATA (simulates P2P peers and chain data)
+// ══════════════════════════════════════════════════════════════════
+function seedDemoData() {
+  App.contacts = [
+    { addr:'0xA1B2C3D4E5F6789012345678901234567890ABCD', name:'Satoshi.eth', avatar:'🦁', online:true, chains:['ETH','BSC'] },
+    { addr:'0xB2C3D4E5F6789012345678901234567890ABCDE1', name:'AliceDAO',    avatar:'🦊', online:true, chains:['BSC','TRON'] },
+    { addr:'0xC3D4E5F6789012345678901234567890ABCDEF12', name:'CryptoWolf',  avatar:'🐺', online:false,chains:['ETH'] },
+    { addr:'0xD4E5F6789012345678901234567890ABCDEF1234', name:'MoonBear',    avatar:'🐻', online:true, chains:['BSC','ETH','TRON'] },
+    { addr:'0xE5F6789012345678901234567890ABCDEF123456', name:'DeFi Panda',  avatar:'🐼', online:false,chains:['ETH','TRON'] },
+  ];
+
+  App.chats = [
+    {
+      id:'dm-1', type:'dm', name:'Satoshi.eth', avatar:'🦁', addr:'0xA1B2...ABCD',
+      lastMsg:'刚刚转了 0.5 ETH 给你',lastTime:'14:30',unread:2,online:true,
+      messages:[
+        {id:1,from:'them',text:'嗨！准备好参加今晚的 DeFi 会议了吗？',time:'14:15',type:'text'},
+        {id:2,from:'them',text:'最新一期的 BSC 矿池收益不错，我发了个报告给你',time:'14:18',type:'text'},
+        {id:3,from:'me',  text:'当然！7点准时上线，我已经准备好议题了 🚀',time:'14:22',type:'text'},
+        {id:4,from:'them',text:'BTW 我刚刚给你转了点 ETH',time:'14:28',type:'text'},
+        {id:5,from:'them',amount:'0.5',chain:'ETH',addr:'0xA1...ABCD→0x'+App.identity?.address?.slice(2,8)+'...',type:'transfer',time:'14:30'},
+      ]
+    },
+    {
+      id:'dm-2', type:'dm', name:'AliceDAO', avatar:'🦊', addr:'0xB2C3...CDE1',
+      lastMsg:'🧧 红包已到账！',lastTime:'12:05',unread:1,online:true,
+      messages:[
+        {id:1,from:'me',  text:'Alice，最近在研究哪个项目？',time:'11:50',type:'text'},
+        {id:2,from:'them',text:'主要看 Layer2 和 Cross-chain Bridge 方向，你呢？',time:'11:53',type:'text'},
+        {id:3,from:'me',  text:'我这边在关注 ZK-Rollup 的进展，昨天白皮书更新了',time:'11:58',type:'text'},
+        {id:4,from:'them',amount:'88',chain:'BSC',msg:'恭喜发财！',count:8,type:'hongbao',time:'12:05'},
+      ]
+    },
+    {
+      id:'grp-1', type:'group', name:'DeFi 研究小组', avatar:'🔮', addr:'grp-0x1234',
+      lastMsg:'[Wolf]: 今晚开会，别忘了',lastTime:'昨天',unread:0,online:false,
+      members:['🦁','🦊','🐺','🐻','🐼'],
+      messages:[
+        {id:1,from:'🐺 CryptoWolf',text:'大家好，我整理了一份最新的跨链协议对比报告',time:'昨天 16:20',type:'text'},
+        {id:2,from:'🐻 MoonBear', text:'谢谢Wolf！我看了下，Stargate 的流动性还是最好的',time:'昨天 16:35',type:'text'},
+        {id:3,from:'🦁 Satoshi', text:'今晚开会，别忘了，我们聊聊 TRON 生态的最新动向 @所有人',time:'昨天 18:00',type:'text'},
+      ]
+    },
+    {
+      id:'grp-2', type:'group', name:'链上红包群 🧧', avatar:'🎊', addr:'grp-0x5678',
+      lastMsg:'发了个大红包！',lastTime:'周一',unread:5,online:false,
+      members:['🦁','🦊','🐻'],
+      messages:[
+        {id:1,from:'🦁 Satoshi',amount:'100',chain:'BSC',msg:'新年快乐！',count:10,type:'hongbao',time:'周一 10:00'},
+        {id:2,from:'🦊 Alice',  text:'哇！抢到了！谢谢老大 🎉',time:'周一 10:01',type:'text'},
+        {id:3,from:'🐻 MoonBear',text:'手速不够快，才抢到 8.88 BNB 😭',time:'周一 10:02',type:'text'},
+      ]
+    }
+  ];
+
+  App.txHistory = [
+    { type:'recv',from:'Satoshi.eth',amount:'+0.5 ETH',usd:'$1,245.00',time:'14:30',chain:'ETH' },
+    { type:'send',to:'AliceDAO',    amount:'-200 USDT',usd:'-$200.00', time:'12:10',chain:'BSC' },
+    { type:'hb',  name:'红包×3',   amount:'+26.67 BNB',usd:'+$8,934', time:'周一',  chain:'BSC' },
+    { type:'send',to:'CryptoWolf', amount:'-0.1 ETH',  usd:'-$249.00',time:'上周',  chain:'ETH' },
+    { type:'recv',from:'MoonBear', amount:'+500 TRX',  usd:'+$61.00', time:'上周',  chain:'TRON'},
+  ];
+}
+
+// ══════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════════
+let currentPage = 'messages';
+function switchPage(page, navEl) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  navEl.classList.add('active');
+  currentPage = page;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CHAT LIST
+// ══════════════════════════════════════════════════════════════════
+function renderChatList(filter='') {
+  const el = document.getElementById('chatListEl');
+  const filtered = App.chats.filter(c=>c.name.toLowerCase().includes(filter.toLowerCase()));
+  el.innerHTML = filtered.map(c=>`
+    <div class="chat-item ${App.currentChat?.id===c.id?'active':''}" onclick="openChat('${c.id}')">
+      <div class="chat-av ${c.type==='group'?'group':''}">
+        ${c.avatar}
+        ${c.type==='dm'&&c.online?'<div class="online-dot"></div>':''}
+      </div>
+      <div class="chat-info">
+        <div class="chat-name">${c.name}</div>
+        <div class="chat-preview">${escHtml(c.lastMsg)}</div>
+      </div>
+      <div class="chat-meta">
+        <div class="chat-time">${c.lastTime}</div>
+        ${c.unread?`<div class="chat-unread">${c.unread}</div>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterChats(v) { renderChatList(v); }
+
+function openChat(id) {
+  const chat = App.chats.find(c=>c.id===id);
+  if (!chat) return;
+  App.currentChat = chat;
+  chat.unread = 0;
+  renderChatList();
+
+  document.getElementById('msgLayout').classList.add('in-chat');
+  document.getElementById('cwAvatar').textContent = chat.avatar;
+  document.getElementById('cwName').textContent   = chat.name;
+  document.getElementById('cwSub').textContent    =
+    chat.type === 'group'
+      ? `${chat.members?.length||3} 位成员 · 群组加密`
+      : chat.online ? '在线 · 端对端加密' : '离线 · 消息将待发送';
+
+  // 重置销毁模式 UI
+  App.currentBurnMode = 'none';
+  document.getElementById('burnPickerLabel').textContent = '普通';
+  document.getElementById('burnPicker').classList.remove('active');
+
+  renderMessages();
+}
+
+function closeCurrentChat() {
+  clearInterval(_burnTickTimer);
+  closeAllMenus();
+  document.getElementById('msgLayout').classList.remove('in-chat');
+  App.currentChat = null;
+  renderChatList();
+}
+
+function renderMessages() {
+  if (!App.currentChat) return;
+  const el = document.getElementById('messagesArea');
+
+  el.innerHTML = `<div class="msg-date-sep">今天</div>` +
+    App.currentChat.messages.map((m,idx) => renderSingleMessage(m, idx)).join('');
+
+  el.scrollTop = el.scrollHeight;
+
+  // 为所有消息绑定长按菜单
+  el.querySelectorAll('.msg-bubble').forEach(bubble => {
+    attachLongPress(bubble);
+  });
+
+  // 启动计时销毁任务（阅后即焚由打开触发）
+  checkTimedBurns();
+}
+
+function renderSingleMessage(m, idx) {
+  const isMe = m.from === 'me';
+
+  // 已销毁的消息
+  if (m.burned) {
+    return `<div class="msg-bubble ${isMe?'mine':''}">
+      ${!isMe?`<div class="msg-av">${m.from?.split(' ')[0]||'🤖'}</div>`:''}
+      <div class="msg-content">
+        <div class="msg-burned">🔥 消息已销毁</div>
+      </div>
+    </div>`;
+  }
+
+  // 阅后即焚 · 未读状态
+  if (m.burn === 'read' && !isMe && !m.read && !m.burning) {
+    return `<div class="msg-bubble" data-msg-idx="${idx}">
+      <div class="msg-av">${m.from?.split(' ')[0]||'🤖'}</div>
+      <div class="msg-content">
+        <div class="msg-burn-wrap" style="position:relative">
+          <div class="msg-text" style="min-width:120px;min-height:30px">${escHtml(m.text||'').replace(/./g,'·')}</div>
+          <div class="msg-blur-cover" onclick="revealBurnMsg(${idx})">
+            <span class="fire">🔥</span> 点击查看 · 阅后销毁
+          </div>
+        </div>
+        <div class="msg-time">${m.time}<span class="burn-badge read">👁 阅后即焚</span></div>
+      </div>
+    </div>`;
+  }
+
+  // 销毁倒计时中（正在燃烧动画）
+  const burningClass = m.burning ? ' burning' : '';
+  const burnBadge = renderBurnBadge(m);
+
+  if (m.type === 'transfer') {
+    return `<div class="msg-bubble ${isMe?'mine':''}${burningClass}" data-msg-idx="${idx}">
+      ${!isMe?`<div class="msg-av">${m.from?.split(' ')[0]||'🤖'}</div>`:''}
+      <div class="msg-content">
+        <div class="msg-transfer">
+          <div class="transfer-header">
+            <span>💸</span>
+            <span class="transfer-amount">${m.amount} ${CHAIN_UNITS[m.chain]||m.chain}</span>
+            <span class="transfer-chain">${m.chain}</span>
+          </div>
+          <div class="transfer-addr">📍 ${m.addr||'链上转账'}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:6px">✓ 链上存证</div>
+        </div>
+        <div class="msg-time">${m.time}${burnBadge}</div>
+      </div>
+    </div>`;
+  }
+  if (m.type === 'hongbao') {
+    return `<div class="msg-bubble ${isMe?'mine':''}${burningClass}" data-msg-idx="${idx}" style="justify-content:${isMe?'flex-end':'flex-start'}">
+      ${!isMe?`<div class="msg-av">${m.from?.split(' ')[0]||'🤖'}</div>`:''}
+      <div class="msg-content">
+        <div class="msg-hongbao" onclick="openHongbao(this)">
+          <div class="hongbao-icon">🧧</div>
+          <div class="hongbao-amount">${m.amount} ${CHAIN_UNITS[m.chain]||'BNB'}</div>
+          <div class="hongbao-msg">${escHtml(m.msg||'恭喜发财！')}</div>
+          <div class="hongbao-open">点击领取 · ${m.count||1}个红包</div>
+        </div>
+        <div class="msg-time">${m.time}${burnBadge}</div>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="msg-bubble ${isMe?'mine':''}${burningClass}" data-msg-idx="${idx}">
+    ${!isMe?`<div class="msg-av">${m.from?.split(' ')[0]||'🤖'}</div>`:''}
+    <div class="msg-content">
+      ${!isMe&&App.currentChat.type==='group'?`<div class="msg-name">${m.from}</div>`:''}
+      <div class="msg-text">${escHtml(m.text)}</div>
+      <div class="msg-time">${m.time}${burnBadge}</div>
+    </div>
+  </div>`;
+}
+
+function renderBurnBadge(m) {
+  if (!m.burn || m.burn === 'none') return '';
+  if (m.burn === 'read') {
+    return m.read
+      ? `<span class="burn-badge read countdown">🔥 ${Math.max(0, Math.ceil((m.burnAt - Date.now())/1000))}s</span>`
+      : `<span class="burn-badge">👁 阅后即焚</span>`;
+  }
+  // 定时销毁
+  const left = Math.max(0, Math.ceil((m.burnAt - Date.now())/1000));
+  if (left <= 0) return '';
+  const label = left >= 60 ? `${Math.ceil(left/60)}分` : `${left}秒`;
+  const cls = left <= 10 ? 'countdown' : '';
+  return `<span class="burn-badge ${cls}">🔥 ${label}</span>`;
+}
+
+function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text  = input.value.trim();
+  if (!text || !App.currentChat) return;
+
+  const burnMode = App.currentBurnMode || 'none';
+  const now = Date.now();
+  const msg = {
+    id: now, from: 'me', text, time: timeNow(), type: 'text',
+    burn: burnMode,
+    burnAt: burnMode !== 'none' && burnMode !== 'read'
+      ? now + burnMode * 1000
+      : null,
+    read: false,
+    burned: false,
+  };
+  App.currentChat.messages.push(msg);
+  App.currentChat.lastMsg  = burnMode !== 'none' ? '🔥 ' + text : text;
+  App.currentChat.lastTime = '刚刚';
+  input.value = '';
+  input.style.height = '';
+  renderMessages();
+  renderChatList();
+
+  setTimeout(() => simulateReply(), 1200 + Math.random() * 2000);
+}
+
+function sendEmoji(emoji) {
+  if (!App.currentChat) return;
+  const input = document.getElementById('msgInput');
+  input.value += emoji;
+  input.focus();
+}
+
+function simulateReply() {
+  if (!App.currentChat) return;
+  const replies = [
+    '收到 ✓ 已加密验证',
+    '👍 好的，稍后回复',
+    '正在链上广播交易记录...',
+    '🔐 消息已端对端加密',
+    '明白，我这边也看到了',
+    '太棒了！继续关注 📊',
+    '🚀 链上数据已同步',
+  ];
+  const r = replies[Math.floor(Math.random() * replies.length)];
+  const contact = App.contacts.find(c => App.currentChat?.addr?.includes(c.addr?.slice(0,6))) || App.contacts[0];
+  const name = App.currentChat.type === 'group' ? `${contact?.avatar||'🤖'} ${contact?.name||'群友'}` : 'them';
+
+  App.currentChat.messages.push({
+    id: Date.now(), from: name, text: r, time: timeNow(), type: 'text'
+  });
+  App.currentChat.lastMsg  = r;
+  App.currentChat.lastTime = '刚刚';
+  renderMessages();
+  renderChatList();
+  showToast('新消息', `${App.currentChat.name}: ${r.slice(0,30)}`, App.currentChat.avatar);
+}
+
+function autoResize(el) {
+  el.style.height = '';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 消息销毁系统
+// ══════════════════════════════════════════════════════════════════
+App.currentBurnMode = 'none'; // 'none' | 5 | 30 | 60 | 3600 | 'read'
+let _burnTimer = null;
+let _burnTickTimer = null;
+
+// ── 切换销毁模式 ──
+function setBurnMode(mode, label) {
+  App.currentBurnMode = mode;
+  const picker = document.getElementById('burnPicker');
+  const lbl    = document.getElementById('burnPickerLabel');
+  lbl.textContent = label;
+  picker.classList.toggle('active', mode !== 'none');
+  closeAllMenus();
+  if (mode !== 'none') {
+    const modeText = mode === 'read' ? '阅后即焚已开启' : `消息将在 ${label} 后自动销毁`;
+    showToast('🔥 销毁模式', modeText, '🔥', 2500);
+  }
+}
+
+// ── 定时销毁轮询（每秒更新徽章 + 触发销毁）──
+function checkTimedBurns() {
+  clearInterval(_burnTickTimer);
+  if (!App.currentChat) return;
+  _burnTickTimer = setInterval(() => {
+    if (!App.currentChat) { clearInterval(_burnTickTimer); return; }
+    let changed = false;
+    const now = Date.now();
+    App.currentChat.messages.forEach(m => {
+      if (m.burned || m.burn === 'none' || !m.burn) return;
+      if (m.burn === 'read') {
+        // 阅后即焚 — 已读且 burnAt 到期
+        if (m.read && m.burnAt && now >= m.burnAt) {
+          triggerBurn(m); changed = true;
+        }
+      } else {
+        // 定时销毁
+        if (m.burnAt && now >= m.burnAt) {
+          triggerBurn(m); changed = true;
+        }
+      }
+    });
+    // 每秒刷新徽章倒计时
+    document.querySelectorAll('.burn-badge.countdown').forEach(el => {
+      // 找到对应消息
+      const bubble = el.closest('[data-msg-idx]');
+      if (!bubble) return;
+      const idx = parseInt(bubble.dataset.msgIdx);
+      const m = App.currentChat?.messages[idx];
+      if (!m || m.burned || !m.burnAt) return;
+      const left = Math.max(0, Math.ceil((m.burnAt - now)/1000));
+      if (left <= 0) return;
+      el.textContent = `🔥 ${left >= 60 ? Math.ceil(left/60)+'分' : left+'秒'}`;
+    });
+    if (changed) renderMessages();
+  }, 1000);
+}
+
+// ── 触发单条消息销毁动画 ──
+function triggerBurn(m) {
+  m.burning = true;
+  // 900ms 后标记为已销毁
+  setTimeout(() => {
+    m.burned  = true;
+    m.burning = false;
+    if (App.currentChat) renderMessages();
+  }, 900);
+}
+
+// ── 阅后即焚 · 点击揭开 ──
+function revealBurnMsg(idx) {
+  const m = App.currentChat?.messages[idx];
+  if (!m || m.burned) return;
+  m.read   = true;
+  m.burnAt = Date.now() + 5000; // 读完 5 秒后销毁
+  renderMessages();
+
+  // 找到对应遮罩，执行揭开动画
+  const cover = document.querySelector(`[data-msg-idx="${idx}"] .msg-blur-cover`);
+  if (cover) {
+    cover.classList.add('revealed');
+    setTimeout(() => cover.remove(), 350);
+  }
+  showToast('👁 已揭开', '消息将在 5 秒后自动销毁', '🔥', 3000);
+}
+
+// ── 长按菜单 ──
+function attachLongPress(bubble) {
+  let timer;
+  const start = (e) => {
+    timer = setTimeout(() => showMsgMenu(e, bubble), 500);
+  };
+  const cancel = () => clearTimeout(timer);
+  bubble.addEventListener('touchstart', start, {passive:true});
+  bubble.addEventListener('touchend',   cancel);
+  bubble.addEventListener('touchmove',  cancel);
+  bubble.addEventListener('mousedown',  start);
+  bubble.addEventListener('mouseup',    cancel);
+  bubble.addEventListener('mouseleave', cancel);
+}
+
+// ── 长按菜单显示 ──
+function showMsgMenu(e, bubble) {
+  closeAllMenus();
+  const idx = parseInt(bubble.dataset.msgIdx);
+  const m = App.currentChat?.messages[idx];
+  if (!m || m.burned) return;
+  const isMe = m.from === 'me';
+
+  const menu = document.createElement('div');
+  menu.className = 'msg-actions show';
+  menu.id = 'activeMsgMenu';
+  menu.style.cssText = `position:fixed;z-index:500;`;
+
+  // 计算位置
+  const rect = bubble.getBoundingClientRect();
+  const menuTop = Math.min(rect.bottom + 6, window.innerHeight - 200);
+  const menuLeft = isMe
+    ? Math.max(4, rect.right - 180)
+    : Math.min(rect.left, window.innerWidth - 184);
+  menu.style.top  = menuTop + 'px';
+  menu.style.left = menuLeft + 'px';
+
+  menu.innerHTML = `
+    <div class="msg-action-item" onclick="copyMsgText(${idx})">📋 复制</div>
+    ${isMe ? `
+      <div class="msg-action-item" onclick="quickBurnMsg(${idx},5)">⏱ 5秒后销毁</div>
+      <div class="msg-action-item" onclick="quickBurnMsg(${idx},30)">⏱ 30秒后销毁</div>
+      <div class="msg-action-item" onclick="quickBurnMsg(${idx},3600)">⏱ 1小时后销毁</div>
+      <div class="msg-action-sep"></div>
+      <div class="msg-action-item danger" onclick="recallMsg(${idx})">↩ 撤回消息</div>
+    ` : ''}
+    <div class="msg-action-sep"></div>
+    <div class="msg-action-item danger" onclick="deleteMsg(${idx})">🗑 删除（仅本地）</div>
+  `;
+
+  document.body.appendChild(menu);
+
+  // 点击其他地方关闭
+  setTimeout(() => {
+    document.addEventListener('click', closeAllMenus, {once:true});
+    document.addEventListener('touchstart', closeAllMenus, {once:true, passive:true});
+  }, 10);
+}
+
+function closeAllMenus() {
+  document.getElementById('activeMsgMenu')?.remove();
+  document.getElementById('chatMoreMenu')?.classList.remove('show');
+  document.getElementById('burnPickerMenu')?.classList.remove('show');
+}
+
+// ── 复制消息文字 ──
+function copyMsgText(idx) {
+  const m = App.currentChat?.messages[idx];
+  if (!m) return;
+  copyText(m.text || '', '已复制');
+  closeAllMenus();
+}
+
+// ── 单条消息快速设定销毁时间 ──
+function quickBurnMsg(idx, seconds) {
+  const m = App.currentChat?.messages[idx];
+  if (!m || m.burned) return;
+  m.burn   = seconds;
+  m.burnAt = Date.now() + seconds * 1000;
+  renderMessages();
+  showToast('🔥 已设定销毁', `${seconds >= 60 ? seconds/60+'分钟' : seconds+'秒'}后自动销毁`, '⏱', 2500);
+  closeAllMenus();
+}
+
+// ── 撤回消息（仅自己发送的）──
+function recallMsg(idx) {
+  const m = App.currentChat?.messages[idx];
+  if (!m || m.from !== 'me') return;
+  m.text    = '[消息已撤回]';
+  m.burned  = false;
+  m.burn    = 'none';
+  m.burnAt  = null;
+  m.recalled = true;
+  renderMessages();
+  renderChatList();
+  showToast('↩ 已撤回', '消息已撤回', 'ℹ️', 2000);
+  closeAllMenus();
+}
+
+// ── 删除单条（仅本地）──
+function deleteMsg(idx) {
+  if (!App.currentChat) return;
+  App.currentChat.messages.splice(idx, 1);
+  renderMessages();
+  closeAllMenus();
+}
+
+// ── 销毁当前对话所有消息 ──
+function burnAllMessages() {
+  if (!App.currentChat) return;
+  closeAllMenus();
+  const count = App.currentChat.messages.length;
+  if (!count) { showToast('对话为空', '', 'ℹ️'); return; }
+
+  // 依次触发燃烧动画，每条延迟 50ms
+  App.currentChat.messages.forEach((m, i) => {
+    if (m.burned) return;
+    setTimeout(() => { triggerBurn(m); }, i * 60);
+  });
+
+  // 全部销毁完成后清空
+  setTimeout(() => {
+    App.currentChat.messages = [];
+    App.currentChat.lastMsg  = '🔥 消息已全部销毁';
+    App.currentChat.lastTime = '刚刚';
+    renderMessages();
+    renderChatList();
+    showToast('🔥 已全部销毁', `${count} 条消息已彻底删除`, '🔥', 3000);
+  }, count * 60 + 950);
+}
+
+// ── 顶部更多菜单 ──
+function toggleChatMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('chatMoreMenu');
+  const isShowing = menu.classList.contains('show');
+  closeAllMenus();
+  if (!isShowing) menu.classList.add('show');
+}
+
+// ── 销毁时间选择器 ──
+function toggleBurnPicker(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('burnPickerMenu');
+  const isShowing = menu.classList.contains('show');
+  closeAllMenus();
+  if (!isShowing) menu.classList.add('show');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CONTACTS
+// ══════════════════════════════════════════════════════════════════
+function switchContactTab(el, tab) {
+  document.querySelectorAll('.ctab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  App.currentContactTab = tab;
+  renderContacts();
+}
+
+function renderContacts() {
+  const el = document.getElementById('contactsBody');
+  const tab = App.currentContactTab;
+
+  if (tab === 'friends') {
+    const myId = `
+      <div class="add-friend-panel">
+        <h3>我的链上 ID</h3>
+        <p>分享给朋友，让他们添加你为联系人</p>
+        <div class="my-id-box" onclick="copyMyAddr()">
+          <span>${App.identity?.avatar||'🦁'} ${App.identity?.name||'我'}</span>
+          ${App.identity?.address||''}
+          <span class="copy-hint">点击复制</span>
+        </div>
+        <div style="display:flex;gap:10px">
+          <input class="ob-input" id="add-friend-input" placeholder="粘贴对方链上地址..." style="margin:0;flex:1">
+          <button class="btn-gold" style="width:auto;padding:14px 20px;white-space:nowrap" onclick="addFriend()">添加好友</button>
+        </div>
+      </div>
+    `;
+
+    const list = App.contacts.map(c=>`
+      <div class="contact-card" onclick="openChatWithContact('${c.addr}')">
+        <div class="contact-av">${c.avatar}</div>
+        <div class="contact-info">
+          <div class="contact-name">${c.name} ${c.online?'<span style="color:var(--green);font-size:11px">● 在线</span>':''}</div>
+          <div class="contact-addr">${c.addr.slice(0,18)}...${c.addr.slice(-6)}</div>
+          <div class="contact-chain-badges">
+            ${c.chains.map(ch=>`<span class="chain-badge ${ch.toLowerCase()}">${ch}</span>`).join('')}
+          </div>
+        </div>
+        <div class="contact-actions">
+          <div class="contact-action-btn" onclick="event.stopPropagation();openChatWithContact('${c.addr}')">💬</div>
+          <div class="contact-action-btn primary" onclick="event.stopPropagation();showTransferTo('${c.addr}','${c.name}')">💸</div>
+        </div>
+      </div>
+    `).join('');
+
+    el.innerHTML = myId + `<div class="contact-section-title">好友列表（${App.contacts.length}）</div>` + list;
+
+  } else if (tab === 'groups') {
+    const groups = App.chats.filter(c=>c.type==='group');
+    el.innerHTML = `
+      <div class="contact-section-title">我的群组（${groups.length}）</div>
+      ${groups.map(g=>`
+        <div class="contact-card" onclick="openChat('${g.id}')">
+          <div class="contact-av">${g.avatar}</div>
+          <div class="contact-info">
+            <div class="contact-name">${g.name}</div>
+            <div class="contact-addr">${g.addr}</div>
+            <div class="contact-chain-badges">
+              <span class="chain-badge bsc">BSC</span>
+              <span style="font-size:11px;color:var(--text3)">${g.members?.length||3} 位成员</span>
+            </div>
+          </div>
+          <div class="contact-actions">
+            <div class="contact-action-btn primary">进入</div>
+          </div>
+        </div>
+      `).join('')}
+      <div style="margin-top:16px">
+        <button class="btn-gold" onclick="showNewChatModal()">＋ 创建群组</button>
+      </div>
+    `;
+
+  } else {
+    el.innerHTML = `
+      <div style="text-align:center;padding:48px 20px;color:var(--text3)">
+        <div style="font-size:48px;margin-bottom:12px">🤝</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">暂无好友申请</div>
+        <div style="font-size:13px">当有人添加你时，这里会收到通知</div>
+      </div>
+    `;
+  }
+}
+
+function addFriend() {
+  const addr = document.getElementById('add-friend-input').value.trim();
+  if (!addr) { showToast('提示','请输入对方链上地址','⚠️'); return; }
+  const exists = App.contacts.find(c=>c.addr===addr);
+  if (exists) { showToast('已存在','该地址已在联系人列表中','ℹ️'); return; }
+  const newContact = {
+    addr, name: addr.slice(0,8)+'...', avatar: AVATARS[Math.floor(Math.random()*AVATARS.length)],
+    online: false, chains: ['BSC']
+  };
+  App.contacts.push(newContact);
+  showToast('已发送','好友申请已上链存证 ✓','🤝',4000);
+  renderContacts();
+}
+
+function openChatWithContact(addr) {
+  const c = App.contacts.find(x=>x.addr===addr);
+  if (!c) return;
+  let chat = App.chats.find(x=>x.type==='dm'&&x.addr?.includes(addr.slice(0,6)));
+  if (!chat) {
+    chat = {
+      id:'dm-'+Date.now(), type:'dm', name:c.name, avatar:c.avatar,
+      addr: addr.slice(0,8)+'...'+addr.slice(-4),
+      lastMsg:'', lastTime:'', unread:0, online:c.online, messages:[]
+    };
+    App.chats.unshift(chat);
+  }
+  switchPage('messages', document.getElementById('nav-messages'));
+  setTimeout(()=>openChat(chat.id), 50);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MEETING
+// ══════════════════════════════════════════════════════════════════
+function renderMeeting() {
+  const el = document.getElementById('meetingGrid');
+  const rooms = [
+    { id:1, name:'DeFi 周报讨论', host:'Satoshi.eth', participants:['🦁','🦊','🐺'], count:3, tags:['video','🔐 加密'], type:'video' },
+    { id:2, name:'跨链技术分享',  host:'CryptoWolf',  participants:['🐺','🐻'],       count:2, tags:['audio'],          type:'audio' },
+    { id:3, name:'项目路演',      host:'AliceDAO',    participants:['🦊','🐼','🦁','🐻'],count:12,tags:['screen','live'], type:'screen' },
+  ];
+
+  el.innerHTML = `
+    <div class="create-room-card" onclick="showCreateMeeting()">
+      <div class="create-room-icon">＋</div>
+      <div class="create-room-label">创建会议</div>
+      <div class="create-room-sub">WebRTC · P2P · 端对端加密</div>
+    </div>
+    ${rooms.map(r=>`
+      <div class="meeting-room-card">
+        <div class="room-title">${r.name}</div>
+        <div class="room-host">主持人：${r.host}</div>
+        <div class="room-participants">
+          ${r.participants.map(p=>`<div class="room-pav">${p}</div>`).join('')}
+          <div class="room-count">${r.count > r.participants.length ? `+${r.count-r.participants.length}` : ''} ${r.count} 人</div>
+        </div>
+        <div class="room-tags">
+          ${r.tags.map(t=>`<span class="room-tag ${t==='live'?'live':''}">${t==='live'?'直播中':t==='video'?'📹 视频':t==='audio'?'🎙 语音':t==='screen'?'🖥 共享':t}</span>`).join('')}
+        </div>
+        <button class="room-join-btn" onclick="joinMeeting('${r.name}','${r.type}',${r.count})">加入会议</button>
+      </div>
+    `).join('')}
+  `;
+}
+
+function showCreateMeeting() { openModal('modal-meeting'); }
+
+function createMeeting() {
+  const name = document.getElementById('mt-name').value.trim() || '我的会议';
+  const type = document.getElementById('mt-type').value;
+  closeModal('modal-meeting');
+  joinMeeting(name, type, 1);
+}
+
+function joinMeeting(name, type, existingCount) {
+  const overlay = document.getElementById('meeting-overlay');
+  overlay.classList.add('active');
+  document.getElementById('meetingRoomName').textContent = name;
+
+  // Render video tiles
+  const grid = document.getElementById('videoGrid');
+  const mockParticipants = [
+    { av: App.identity?.avatar||'🦁', name: App.identity?.name||'我', isMe:true, speaking:true },
+    { av:'🦁', name:'Satoshi.eth', isMe:false, speaking:false },
+    { av:'🦊', name:'AliceDAO',    isMe:false, speaking:false },
+  ].slice(0, Math.min(existingCount + 1, 4));
+
+  grid.innerHTML = (type==='screen'?`
+    <div class="screen-share-tile">
+      <div style="font-size:48px">🖥</div>
+      <div style="font-size:16px;font-weight:600">屏幕共享中</div>
+      <div class="text-muted text-sm">Satoshi.eth 正在共享屏幕</div>
+    </div>
+  `:'') + mockParticipants.map(p=>`
+    <div class="video-tile ${p.speaking?'speaking':''}">
+      ${p.isMe?'<div class="host-badge">主持人</div>':''}
+      <div class="video-tile-av">${p.av}</div>
+      <div class="video-tile-name">${p.name}</div>
+      <div class="video-tile-status">
+        <span>🎙</span><span>${p.speaking?'发言中':'静音'}</span>
+      </div>
+    </div>
+  `).join('');
+
+  // Timer
+  App.meetingSeconds = 0;
+  App.meetingTimer = setInterval(()=>{
+    App.meetingSeconds++;
+    const m = String(Math.floor(App.meetingSeconds/60)).padStart(2,'0');
+    const s = String(App.meetingSeconds%60).padStart(2,'0');
+    document.getElementById('meetingTimer').textContent = m+':'+s;
+  }, 1000);
+
+  // Simulate WebRTC
+  showToast('会议连接中','正在建立 WebRTC P2P 连接...','🔗');
+  setTimeout(()=>showToast('已加入会议',`${name} · 端对端加密`,'🎙'), 1500);
+}
+
+function leaveMeeting() {
+  clearInterval(App.meetingTimer);
+  document.getElementById('meeting-overlay').classList.remove('active');
+  showToast('已离开','会议结束，通话记录上链存证','✓');
+}
+
+function toggleCtrl(type) {
+  const btn = document.getElementById('ctrl-'+type);
+  btn.classList.toggle('active');
+  const icons = { mic:'🎙', cam:'📹', screen:'🖥', chat:'💬', participants:'👥' };
+  const offIcons = { mic:'🔇', cam:'📵', screen:'🖥', chat:'💬', participants:'👥' };
+  const isOff = btn.classList.contains('active');
+  btn.querySelector('.ctrl-icon').textContent = isOff ? offIcons[type] : icons[type];
+  if (type==='mic')    showToast(isOff?'已静音':'已开启麦克风','','🎙');
+  if (type==='cam')    showToast(isOff?'摄像头已关闭':'摄像头已开启','','📹');
+  if (type==='screen') showToast('屏幕共享','功能需要浏览器权限支持','🖥');
+}
+
+function toggleMeetingChat() { showToast('会议聊天','可在消息页与会议成员互发消息','💬'); }
+function showParticipants()  { showToast('参会成员','点击成员可设置禁言/踢出','👥'); }
+function startVoiceCall()    { joinMeeting('通话：'+App.currentChat?.name,'audio',1); }
+function startVideoCall()    { joinMeeting('视频：'+App.currentChat?.name,'video',1); }
+
+// ══════════════════════════════════════════════════════════════════
+// WALLET — 真实链上数据
+// ══════════════════════════════════════════════════════════════════
+async function loadRealWalletData() {
+  const addr = App.identity?.address;
+  if (!addr) { showToast('未登录','请先创建钱包','⚠️'); return; }
+
+  showToast('同步中','正在获取链上余额...','⛓');
+
+  await fetchPrices();
+
+  // BSC 原生币
+  let bscOk = false;
+  try {
+    App.wallet.BSC.BNB = await fetchChainBalance('BSC', addr);
+    bscOk = true;
+  } catch(e) {
+    console.warn('BSC BNB failed:', e.message);
+    showToast('BSC 连接失败', e.message.slice(0,60), '⚠️');
+  }
+
+  // BSC 代币
+  for (const tok of RPC_CHAINS.BSC.tokens) {
+    try {
+      const bal = await fetchTokenBalance('BSC', tok.addr, addr, tok.dec);
+      App.wallet.BSC[tok.sym] = isFinite(bal) ? bal : 0;
+      console.log(`BSC ${tok.sym}:`, bal);
+    } catch(e) {
+      console.warn(`BSC ${tok.sym} failed:`, e.message);
+      App.wallet.BSC[tok.sym] = App.wallet.BSC[tok.sym] || 0;
+    }
+  }
+
+  // ETH
+  try {
+    App.wallet.ETH.ETH = await fetchChainBalance('ETH', addr);
+  } catch(e) {
+    console.warn('ETH failed:', e.message);
+  }
+
+  for (const tok of RPC_CHAINS.ETH.tokens) {
+    try {
+      const bal = await fetchTokenBalance('ETH', tok.addr, addr, tok.dec);
+      App.wallet.ETH[tok.sym] = isFinite(bal) ? bal : 0;
+    } catch(e) {
+      console.warn(`ETH ${tok.sym} failed:`, e.message);
+      App.wallet.ETH[tok.sym] = App.wallet.ETH[tok.sym] || 0;
+    }
+  }
+
+  renderWallet();
+
+  if (bscOk) {
+    showToast('✓ 已同步',
+      `BNB: ${App.wallet.BSC.BNB.toFixed(4)} · USDT: ${(App.wallet.BSC.USDT||0).toFixed(4)}`,
+      '✅', 5000);
+  } else {
+    showToast('⚠ RPC 失败','请打开浏览器控制台(F12)查看详细错误','❌', 6000);
+  }
+}
+
+function renderWallet() {
+  const el  = document.getElementById('walletBody');
+  const w   = App.wallet;
+  const p   = App.prices;
+  const bnbUsd  = (w.BSC.BNB  * (p.BNB||600)).toFixed(2);
+  const ethUsd  = (w.ETH.ETH  * (p.ETH||2500)).toFixed(2);
+  const tokUsd  = (w.BSC.USDT||0)+(w.BSC.USDC||0)+(w.ETH.USDT||0)+(w.ETH.USDC||0);
+  const total   = (+bnbUsd + +ethUsd + tokUsd).toFixed(2);
+
+  el.innerHTML = `
+    <div class="wallet-balance-card">
+      <div class="wallet-balance-label">总资产估值（真实链上）</div>
+      <div class="wallet-balance-total">$${Number(total).toLocaleString()}</div>
+      <div class="wallet-balance-sub">BSC + ETH · 公共 RPC 实时同步</div>
+      <div class="wallet-addr-row">
+        <span class="wallet-addr">${App.identity?.address||'—'}</span>
+        <span class="copy-btn" onclick="copyMyAddr()">复制</span>
+      </div>
+    </div>
+
+    <div class="wallet-actions">
+      <div class="wallet-action" onclick="showWalletSendModal()">
+        <div class="wallet-action-icon">↑</div><div class="wallet-action-label">转账</div>
+      </div>
+      <div class="wallet-action" onclick="showReceiveModal()">
+        <div class="wallet-action-icon">↓</div><div class="wallet-action-label">收款</div>
+      </div>
+      <div class="wallet-action" onclick="showHongbaoModal()">
+        <div class="wallet-action-icon">🧧</div><div class="wallet-action-label">红包</div>
+      </div>
+      <div class="wallet-action" onclick="loadRealWalletData()">
+        <div class="wallet-action-icon">⟳</div><div class="wallet-action-label">刷新</div>
+      </div>
+    </div>
+
+    <div class="chain-assets">
+      <div class="chain-assets-header">
+        <div class="chain-assets-title">链上资产（真实余额）</div>
+        <span style="font-size:10px;color:var(--text3)">BNB $${p.BNB||600} · ETH $${p.ETH||2500}</span>
+      </div>
+      ${[
+        {icon:'🟡',name:'BNB',  chain:'BSC',chainKey:'BSC',isNative:true, chainLabel:'BSC 原生币',        bal:w.BSC.BNB,  usd:bnbUsd},
+        {icon:'💚',name:'USDT', chain:'BSC',chainKey:'BSC',isNative:false,chainLabel:'BSC · BEP-20',tokenAddr:'0x55d398326f99059fF775485246999027B3197955', bal:w.BSC.USDT||0, usd:(w.BSC.USDT||0).toFixed(2)},
+        {icon:'🔵',name:'USDC', chain:'BSC',chainKey:'BSC',isNative:false,chainLabel:'BSC · BEP-20',tokenAddr:'0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', bal:w.BSC.USDC||0, usd:(w.BSC.USDC||0).toFixed(2)},
+        {icon:'◆', name:'ETH',  chain:'ETH',chainKey:'ETH',isNative:true, chainLabel:'ETH 原生币',        bal:w.ETH.ETH,  usd:ethUsd},
+        {icon:'💚',name:'USDT', chain:'ETH',chainKey:'ETH',isNative:false,chainLabel:'ETH · ERC-20',tokenAddr:'0xdAC17F958D2ee523a2206206994597C13D831ec7', bal:w.ETH.USDT||0, usd:(w.ETH.USDT||0).toFixed(2)},
+        {icon:'🔵',name:'USDC', chain:'ETH',chainKey:'ETH',isNative:false,chainLabel:'ETH · ERC-20',tokenAddr:'0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', bal:w.ETH.USDC||0, usd:(w.ETH.USDC||0).toFixed(2)},
+      ].map((a,i)=>{
+        App._assetCache = App._assetCache || [];
+        App._assetCache[i] = a;
+        return `
+        <div class="asset-row" onclick="openAssetDetail(${i})" style="cursor:pointer">
+          <div class="asset-icon">${a.icon}</div>
+          <div class="asset-info"><div class="asset-name">${a.name}</div><div class="asset-chain">${a.chainLabel}</div></div>
+          <div class="asset-value">
+            <div class="asset-amount">${(+a.bal||0).toFixed(6)} ${a.name}</div>
+            <div class="asset-usd">$${a.usd} · 点击 →</div>
+          </div>
+        </div>`}).join('')}
+    </div>
+
+    <div class="tx-history">
+      <div class="chain-assets-header">
+        <div class="chain-assets-title">交易记录</div>
+        <span style="font-size:10px;color:var(--text3)">本次会话 · 点击查看详情</span>
+      </div>
+      ${App.txHistory.length ? App.txHistory.map((t,i)=>`
+        <div class="tx-row" onclick="openTxDetail(${i})" style="cursor:pointer">
+          <div class="tx-icon ${t.type}">${t.type==='send'?'↑':t.type==='recv'?'↓':'🧧'}</div>
+          <div class="tx-info">
+            <div class="tx-type">${t.type==='send'?'转出至 '+t.to:t.type==='recv'?'收到来自 '+t.from:t.name||'红包'}</div>
+            <div class="tx-addr">${t.chain} · ${t.time}${t.hash?' · 🔗 链上交易':' · 本地记录'}</div>
+          </div>
+          <div class="tx-val">
+            <div class="tx-amount ${t.type}">${t.amount}</div>
+            <div class="tx-time" style="color:${t.status==='ok'?'var(--green)':t.status==='fail'?'var(--red)':t.status==='pending'?'var(--gold)':'var(--text3)'}">${t.status==='ok'?'✓ 已确认':t.status==='fail'?'✕ 失败':t.status==='pending'?'⏳ 广播中':t.usd||'已完成'}</div>
+          </div>
+        </div>`).join('')
+      : '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">暂无交易记录</div>'}
+    </div>
+  `;
+}
+
+function filterChain(el, chain) {
+  document.querySelectorAll('.chain-sel-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 资产详情弹窗
+// ══════════════════════════════════════════════════════════════════
+let _currentAsset = null;
+
+function openAssetDetail(index) {
+  const a = App._assetCache?.[index];
+  if (!a) return;
+  _currentAsset = a;
+
+  const price = a.name==='BNB' ? (App.prices?.BNB||600)
+              : a.name==='ETH' ? (App.prices?.ETH||2500)
+              : 1; // 稳定币≈$1
+
+  document.getElementById('asd-icon').textContent    = a.icon;
+  document.getElementById('asd-name').textContent    = a.name;
+  document.getElementById('asd-chain').textContent   = a.chainLabel;
+  document.getElementById('asd-balance').textContent = (+a.bal||0).toFixed(6) + ' ' + a.name;
+  document.getElementById('asd-usd').textContent     = '≈ $' + a.usd + ' USD';
+
+  document.getElementById('asd-type').textContent    = a.isNative ? '原生币' : (a.chainKey==='BSC'?'BEP-20 代币':'ERC-20 代币');
+  document.getElementById('asd-network').textContent = a.chainKey==='BSC'?'BNB Smart Chain':'Ethereum';
+
+  const contractRow = document.getElementById('asd-contract-row');
+  if (a.isNative) {
+    contractRow.style.display = 'none';
+  } else {
+    contractRow.style.display = 'flex';
+    const ct = a.tokenAddr;
+    document.getElementById('asd-contract').textContent = ct.slice(0,8)+'...'+ct.slice(-6);
+  }
+
+  document.getElementById('asd-decimals').textContent = a.isNative || a.name!=='USDT' || a.chainKey==='BSC' ? '18' : '6';
+  document.getElementById('asd-price').textContent =
+    a.isNative ? '$' + price.toLocaleString() + ' / ' + a.name : '$1.00 (稳定币)';
+
+  openModal('modal-asset-detail');
+}
+
+function copyAssetContract() {
+  if (!_currentAsset?.tokenAddr) return;
+  copyText(_currentAsset.tokenAddr, '合约地址已复制');
+}
+
+function asdSend() {
+  if (!_currentAsset) return;
+  closeModal('modal-asset-detail');
+
+  // 原生币 → 打开转账弹窗并预选链
+  if (_currentAsset.isNative) {
+    showWalletSendModal();
+    setTimeout(()=>{
+      const target = _currentAsset.chainKey;
+      document.querySelectorAll('[data-wchain]').forEach(el=>{
+        el.classList.toggle('selected', el.dataset.wchain===target);
+      });
+      _walletSendChain = target;
+      document.getElementById('ws-unit').textContent = CHAIN_UNITS[target];
+      updateWalletSendBalance();
+    }, 50);
+  } else {
+    // 代币转账暂不支持（需要 ERC20 ABI 调用）
+    showToast('代币转账',`${_currentAsset.name} 代币转账功能开发中。\n当前仅支持 BNB/ETH 原生币转账。`,'ℹ️',4500);
+  }
+}
+
+function asdReceive() {
+  closeModal('modal-asset-detail');
+  showReceiveModal();
+}
+
+function asdOpenExplorer() {
+  if (!_currentAsset) return;
+  const explorer = RPC_CHAINS[_currentAsset.chainKey]?.explorer;
+  if (!explorer) return;
+  const addr = App.identity?.address;
+  let url;
+  if (_currentAsset.isNative) {
+    // 原生币：跳地址页
+    url = `${explorer}/address/${addr}`;
+  } else {
+    // 代币：跳地址的 token 持仓页
+    url = `${explorer}/token/${_currentAsset.tokenAddr}?a=${addr}`;
+  }
+  window.open(url, '_blank');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 交易记录详情弹窗
+// ══════════════════════════════════════════════════════════════════
+let _currentTx = null;
+
+function openTxDetail(index) {
+  const tx = App.txHistory[index];
+  if (!tx) return;
+  _currentTx = tx;
+
+  // 图标 + 标题
+  const iconMap = { send:'↑', recv:'↓', hb:'🧧' };
+  const titleMap = { send:'转出交易', recv:'收到转账', hb:'红包' };
+  document.getElementById('txd-icon').textContent  = iconMap[tx.type]||'📄';
+  document.getElementById('txd-title').textContent = titleMap[tx.type]||'交易';
+
+  // 状态
+  const statusText = {
+    ok:   '✓ 已上链确认',
+    fail: '✕ 交易失败',
+    pending: '⏳ 广播中，等待确认',
+  };
+  const statusColor = {
+    ok:   'var(--green)',
+    fail: 'var(--red)',
+    pending: 'var(--gold)',
+  };
+  const st = statusText[tx.status] || (tx.hash ? '已完成' : '本地记录');
+  const stEl = document.getElementById('txd-status');
+  stEl.textContent = st;
+  stEl.style.color = statusColor[tx.status] || 'var(--text2)';
+
+  // 详情
+  document.getElementById('txd-type').textContent   = tx.type==='send'?'发送':tx.type==='recv'?'接收':'红包';
+  document.getElementById('txd-chain').textContent  = tx.chain || '—';
+  document.getElementById('txd-amount').textContent = tx.amount || '—';
+  document.getElementById('txd-peer').textContent   = tx.to || tx.from || '—';
+  document.getElementById('txd-time').textContent   = tx.time || '—';
+
+  // Hash 与 Explorer 链接
+  const hashWrap     = document.getElementById('txd-hash-wrap');
+  const explorerWrap = document.getElementById('txd-explorer-wrap');
+  if (tx.hash) {
+    document.getElementById('txd-hash').textContent = tx.hash;
+    hashWrap.style.display = 'block';
+
+    // 判断链是否支持 explorer
+    if (RPC_CHAINS[tx.chain]?.explorer) {
+      explorerWrap.style.display = 'block';
+    } else {
+      explorerWrap.style.display = 'none';
+    }
+  } else {
+    hashWrap.style.display = 'none';
+    explorerWrap.style.display = 'none';
+  }
+
+  openModal('modal-tx-detail');
+}
+
+function copyTxHash() {
+  if (!_currentTx?.hash) return;
+  copyText(_currentTx.hash, '交易哈希已复制');
+}
+
+function openInExplorer() {
+  if (!_currentTx?.hash) return;
+  const explorer = RPC_CHAINS[_currentTx.chain]?.explorer;
+  if (!explorer) {
+    showToast('无浏览器','该链暂不支持','⚠️');
+    return;
+  }
+  window.open(`${explorer}/tx/${_currentTx.hash}`, '_blank');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TRANSFER — 真实 ethers.js 签名 + RPC 广播
+// ══════════════════════════════════════════════════════════════════
+function showTransferModal() {
+  if (!App.currentChat) { showToast('提示','请先选择一个对话','💬'); return; }
+  openModal('modal-transfer');
+}
+
+function showTransferTo(addr, name) {
+  openChatWithContact(addr);
+  setTimeout(()=>openModal('modal-transfer'), 300);
+}
+
+function selectChain(el) {
+  document.querySelectorAll('.modal-chain-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  App.selectedChain = el.dataset.chain;
+  document.getElementById('tf-unit').textContent = CHAIN_UNITS[App.selectedChain];
+}
+
+async function doTransfer() {
+  const amountStr = document.getElementById('tf-amount').value;
+  const memo      = document.getElementById('tf-memo').value;
+  const chain     = App.selectedChain; // 'BSC' | 'ETH'
+  const amount    = parseFloat(amountStr);
+
+  if (!amount || amount <= 0) { showToast('错误','请输入有效金额','⚠️'); return; }
+
+  const toAddr = App.currentChat?.addr?.match(/0x[0-9a-fA-F]{40}/)?.[0];
+  if (!toAddr) {
+    showToast('无法转账','该联系人没有有效链上地址','⚠️');
+    return;
+  }
+
+  // 检查余额
+  const sym = CHAIN_UNITS[chain];
+  const bal = chain==='BSC' ? App.wallet.BSC.BNB : App.wallet.ETH.ETH;
+  if (amount >= bal) {
+    showToast('余额不足',`当前 ${bal.toFixed(6)} ${sym}`,'⚠️');
+    return;
+  }
+
+  // ══ 大额二次确认（> 0.01 的原生币）══
+  const BIG_THRESHOLD = 0.01;
+  if (amount > BIG_THRESHOLD) {
+    closeModal('modal-transfer');
+    // 存储待确认的转账数据
+    App._pendingTransfer = { amountStr, memo, chain, amount, toAddr };
+    const price = chain==='BSC' ? (App.prices?.BNB||600) : (App.prices?.ETH||2500);
+    document.getElementById('cfm-chain').textContent = chain + ' (' + sym + ')';
+    document.getElementById('cfm-to').textContent    = toAddr.slice(0,10)+'...'+toAddr.slice(-6);
+    document.getElementById('cfm-amt').textContent   = amount + ' ' + sym;
+    document.getElementById('cfm-usd').textContent   = '≈ $' + (amount * price).toFixed(2);
+    document.getElementById('cfm-phrase').value      = '';
+    document.getElementById('cfm-confirm-btn').disabled = false;
+    openModal('modal-confirm-big');
+    return;
+  }
+
+  // 小额直接执行
+  closeModal('modal-transfer');
+  await executeTransfer({ amountStr, memo, chain, amount, toAddr });
+}
+
+function cancelBigTransfer() {
+  closeModal('modal-confirm-big');
+  App._pendingTransfer = null;
+  showToast('已取消','转账未执行','ℹ️');
+}
+
+async function confirmBigTransfer() {
+  const phrase = document.getElementById('cfm-phrase').value.trim();
+  if (phrase !== 'TRANSFER') {
+    showToast('请输入 TRANSFER','必须输入确认短语（区分大小写）','⚠️');
+    return;
+  }
+  const p = App._pendingTransfer;
+  if (!p) { closeModal('modal-confirm-big'); return; }
+  closeModal('modal-confirm-big');
+  App._pendingTransfer = null;
+  await executeTransfer(p);
+}
+
+async function executeTransfer({ amountStr, memo, chain, amount, toAddr }) {
+  const sym = CHAIN_UNITS[chain];
+  showToast('签名中','正在本地签名交易...','⏳');
+
+  // 先在聊天中插入"发送中"消息
+  const pendingMsg = {
+    id:Date.now(), from:'me', type:'transfer',
+    amount:amountStr, chain, time:timeNow(),
+    addr:`${App.identity.address.slice(0,8)}→${toAddr.slice(0,8)}...`,
+    status:'pending',
+  };
+  if (App.currentChat) {
+    App.currentChat.messages.push(pendingMsg);
+    App.currentChat.lastMsg  = `💸 转账 ${amount} ${sym}`;
+    App.currentChat.lastTime = '刚刚';
+    renderMessages(); renderChatList();
+  }
+
+  try {
+    if (!App.ethersWallet) throw new Error('钱包未解锁，请重新登录');
+
+    const nonce    = await fetchNonce(chain, App.identity.address);
+    const gasGwei  = await fetchGasPrice(chain);
+    const gasPrice = ethers.utils.parseUnits(gasGwei.toString(), 'gwei');
+    const value    = ethers.utils.parseEther(amountStr);
+    const chainId  = RPC_CHAINS[chain].chainId;
+
+    const txObj = { nonce, gasPrice, gasLimit:21000, to:toAddr, value, chainId,
+      data: memo ? ethers.utils.hexlify(ethers.utils.toUtf8Bytes(memo)) : '0x' };
+
+    const signed = await App.ethersWallet.signTransaction(txObj);
+    const txHash = await callRPC(chain, 'eth_sendRawTransaction', [signed]);
+    showToast('✓ 已广播',`Hash: ${txHash.slice(0,16)}...`,'✅', 6000);
+
+    pendingMsg.status = 'ok';
+    pendingMsg.hash   = txHash;
+    pendingMsg.addr   = `${App.identity.address.slice(0,8)}→${toAddr.slice(0,8)}... · ✓`;
+
+    if (chain==='BSC') App.wallet.BSC.BNB = Math.max(0, App.wallet.BSC.BNB - amount);
+    else               App.wallet.ETH.ETH = Math.max(0, App.wallet.ETH.ETH - amount);
+
+    App.txHistory.unshift({
+      type:'send', to:toAddr.slice(0,12)+'...', amount:`-${amount} ${sym}`,
+      chain, time:timeNow(), status:'ok', hash:txHash,
+    });
+
+    pollTx(chain, txHash);
+
+  } catch(e) {
+    pendingMsg.status = 'fail';
+    showToast('✕ 转账失败', (e.message||'').slice(0,100), '❌');
+    App.txHistory.unshift({
+      type:'send', to:toAddr.slice(0,12)+'...', amount:`-${amount} ${sym}`,
+      chain, time:timeNow(), status:'fail',
+    });
+  }
+
+  renderMessages(); renderChatList(); renderWallet();
+}
+
+async function pollTx(chain, hash, attempts=0) {
+  if (attempts>30) return;
+  await new Promise(r=>setTimeout(r,5000));
+  try {
+    const receipt = await callRPC(chain,'eth_getTransactionReceipt',[hash]);
+    if (receipt) {
+      const ok = receipt.status==='0x1';
+      const t  = App.txHistory.find(x=>x.hash===hash);
+      if(t) t.status = ok?'ok':'fail';
+      showToast(ok?'✓ 交易已确认':'✕ 交易失败',
+        `Block #${parseInt(receipt.blockNumber,16).toLocaleString()}`, ok?'✅':'⚠️');
+      renderWallet();
+      // 刷新余额
+      setTimeout(()=>loadRealWalletData(),3000);
+      return;
+    }
+  } catch{}
+  pollTx(chain, hash, attempts+1);
+}
+
+function showHongbaoModal() {
+  if (!App.currentChat) { showToast('提示','请先选择一个对话','💬'); return; }
+  openModal('modal-hongbao');
+}
+
+function doHongbao() {
+  const amount = parseFloat(document.getElementById('hb-amount').value);
+  const count  = parseInt(document.getElementById('hb-count').value) || 1;
+  const msg_   = document.getElementById('hb-msg').value || '恭喜发财！';
+  if (!amount || amount <= 0) { showToast('错误','请输入红包金额','⚠️'); return; }
+
+  const msg = {
+    id: Date.now(), from: 'me', type: 'hongbao',
+    amount: amount.toString(), chain: App.selectedChain || 'BSC',
+    msg: msg_, count, time: timeNow(),
+  };
+  App.currentChat.messages.push(msg);
+  App.currentChat.lastMsg  = `🧧 发了个红包`;
+  App.currentChat.lastTime = '刚刚';
+
+  closeModal('modal-hongbao');
+  renderMessages();
+  renderChatList();
+  showToast('红包已发送',`${amount} BNB · ${count}个红包 · 上链存证`,'🧧', 4000);
+}
+
+function openHongbao(el) {
+  const amt = (Math.random() * 10 + 1).toFixed(4);
+  el.innerHTML = `
+    <div class="hongbao-icon">✨</div>
+    <div class="hongbao-amount">+${amt} BNB</div>
+    <div class="hongbao-msg">手气不错！</div>
+    <div style="font-size:10px;color:rgba(255,215,0,.5);margin-top:8px">✓ 已到账</div>
+  `;
+  showToast('🧧 红包到账',`+${amt} BNB 已转入钱包`,'✨', 4000);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MODAL & UTILS
+// ══════════════════════════════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('active'); });
+});
+
+function showNewChatModal() {
+  document.getElementById('nc-type').onchange = function() {
+    document.getElementById('nc-group-name-row').style.display = this.value==='group'?'block':'none';
+  };
+  openModal('modal-newchat');
+}
+
+function createChat() {
+  const addr = document.getElementById('nc-addr').value.trim();
+  const type = document.getElementById('nc-type').value;
+  const gname= document.getElementById('nc-group-name').value.trim();
+  if (!addr) { showToast('提示','请输入地址或选择联系人','⚠️'); return; }
+
+  if (type === 'group') {
+    const chat = {
+      id: 'grp-'+Date.now(), type:'group', name: gname||'新群组',
+      avatar:'🔮', addr:'grp-0x'+Crypto.randomHex(4),
+      lastMsg:'群组已创建', lastTime:'刚刚', unread:0, online:false,
+      members:[App.identity?.avatar||'🦁'],
+      messages:[{ id:1, from:App.identity?.avatar+' '+App.identity?.name, text:'欢迎加入群组！群权限信息已上链存证。', time:timeNow(), type:'text' }]
+    };
+    App.chats.unshift(chat);
+    closeModal('modal-newchat');
+    renderChatList();
+    openChat(chat.id);
+    showToast('群组已创建',`${gname||'新群组'} · 权限信息上链存证`,'🔮');
+  } else {
+    const contact = App.contacts.find(c=>c.name.toLowerCase().includes(addr.toLowerCase())||c.addr.includes(addr));
+    if (contact) { openChatWithContact(contact.addr); }
+    else {
+      const chat = {
+        id:'dm-'+Date.now(), type:'dm', name:addr.slice(0,10)+'...',
+        avatar:'🤖', addr:addr, lastMsg:'', lastTime:'', unread:0, online:false, messages:[]
+      };
+      App.chats.unshift(chat);
+      openChat(chat.id);
+    }
+    closeModal('modal-newchat');
+    renderChatList();
+  }
+}
+
+function showProfileModal() {
+  document.getElementById('prof-av').textContent = App.identity?.avatar||'🦁';
+  document.getElementById('prof-name').textContent = App.identity?.name||'';
+  document.getElementById('prof-addr-val').textContent = App.identity?.address||'';
+  document.getElementById('prof-pubkey').textContent = JSON.stringify(App.identity?.pubKey||{}).slice(0,120)+'...';
+  // 重置私钥显示状态
+  document.getElementById('prof-pk-display').style.display = 'none';
+  document.getElementById('prof-reveal-btn').style.display  = 'block';
+  document.getElementById('prof-mnemonic').textContent = '点击显示后可见';
+  openModal('modal-profile');
+}
+
+function logoutWallet() {
+  if (!confirm('确认退出登录？\n\n退出后需要重新登录，请确保已备份私钥。')) return;
+  App.ethersWallet = null;
+  App.identity     = null;
+  document.getElementById('main').classList.remove('visible');
+  document.getElementById('onboarding').style.display = 'flex';
+  document.getElementById('onboarding').style.animation = 'cardIn .5s ease both';
+  closeModal('modal-profile');
+  document.querySelectorAll('.ob-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('ob-step1').classList.add('active');
+  obSwitchTab('new');
+}
+
+function copyMyAddr() {
+  const addr = App.identity?.address || '';
+  if (!addr) { showToast('地址未生成','请先创建钱包','⚠️'); return; }
+  copyText(addr, '地址已复制');
+}
+
+function copyText(text, label='已复制') {
+  // 方法1: Clipboard API（现代浏览器）
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(()=>showToast(label, text.slice(0,20)+'...', '📋'))
+      .catch(()=>copyFallback(text, label));
+  } else {
+    copyFallback(text, label);
+  }
+}
+
+function copyFallback(text, label='已复制') {
+  // 方法2: execCommand fallback（兼容旧版/手机浏览器）
+  const el = document.createElement('textarea');
+  el.value = text;
+  el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  el.setSelectionRange(0, text.length); // iOS 需要这行
+  try {
+    const ok = document.execCommand('copy');
+    if (ok) showToast(label, text.slice(0,20)+'...', '📋');
+    else     showToast('复制失败', '请手动长按地址复制', '⚠️');
+  } catch(e) {
+    showToast('复制失败', '请手动长按地址复制', '⚠️');
+  }
+  document.body.removeChild(el);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 钱包页 · 独立转账 & 收款
+// ══════════════════════════════════════════════════════════════════
+let _walletSendChain = 'BSC';
+
+function showWalletSendModal() {
+  _walletSendChain = 'BSC';
+  document.querySelectorAll('[data-wchain]').forEach(el=>{
+    el.classList.toggle('selected', el.dataset.wchain==='BSC');
+  });
+  document.getElementById('ws-to').value = '';
+  document.getElementById('ws-amount').value = '';
+  document.getElementById('ws-unit').textContent = 'BNB';
+  updateWalletSendBalance();
+  openModal('modal-wallet-send');
+}
+
+function wSelectChain(el) {
+  document.querySelectorAll('[data-wchain]').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  _walletSendChain = el.dataset.wchain;
+  document.getElementById('ws-unit').textContent = CHAIN_UNITS[_walletSendChain];
+  updateWalletSendBalance();
+}
+
+function updateWalletSendBalance() {
+  const chain = _walletSendChain;
+  const sym = CHAIN_UNITS[chain];
+  const bal = chain==='BSC' ? App.wallet.BSC.BNB : App.wallet.ETH.ETH;
+  document.getElementById('ws-balance').textContent = (bal||0).toFixed(6) + ' ' + sym;
+  document.getElementById('ws-gas').textContent =
+    chain==='BSC' ? '~0.00002 BNB（约 $0.01）' : '~0.00042 ETH（约 $1.00）';
+}
+
+async function doWalletTransfer() {
+  const toAddr    = document.getElementById('ws-to').value.trim();
+  const amountStr = document.getElementById('ws-amount').value.trim();
+  const amount    = parseFloat(amountStr);
+  const chain     = _walletSendChain;
+  const sym       = CHAIN_UNITS[chain];
+
+  // 验证地址格式
+  if (!/^0x[0-9a-fA-F]{40}$/.test(toAddr)) {
+    showToast('地址格式错误','需要以 0x 开头的 42 位地址','⚠️');
+    return;
+  }
+  if (!amount || amount <= 0) {
+    showToast('金额错误','请输入有效金额','⚠️');
+    return;
+  }
+  const bal = chain==='BSC' ? App.wallet.BSC.BNB : App.wallet.ETH.ETH;
+  if (amount >= bal) {
+    showToast('余额不足',`当前 ${bal.toFixed(6)} ${sym}（需预留 gas）`,'⚠️');
+    return;
+  }
+
+  // 大额二次确认
+  const BIG_THRESHOLD = 0.01;
+  if (amount > BIG_THRESHOLD) {
+    closeModal('modal-wallet-send');
+    App._pendingTransfer = { amountStr, memo:'', chain, amount, toAddr };
+    const price = chain==='BSC' ? (App.prices?.BNB||600) : (App.prices?.ETH||2500);
+    document.getElementById('cfm-chain').textContent = chain + ' (' + sym + ')';
+    document.getElementById('cfm-to').textContent    = toAddr.slice(0,10)+'...'+toAddr.slice(-6);
+    document.getElementById('cfm-amt').textContent   = amount + ' ' + sym;
+    document.getElementById('cfm-usd').textContent   = '≈ $' + (amount * price).toFixed(2);
+    document.getElementById('cfm-phrase').value = '';
+    openModal('modal-confirm-big');
+    return;
+  }
+
+  closeModal('modal-wallet-send');
+  await executeTransfer({ amountStr, memo:'', chain, amount, toAddr });
+}
+
+function showReceiveModal() {
+  const addr = App.identity?.address || '';
+  document.getElementById('recv-addr-val').textContent = addr;
+
+  // 生成 QR 码
+  const qrEl = document.getElementById('recv-qr');
+  qrEl.innerHTML = '';
+  if (typeof QRCode !== 'undefined' && addr) {
+    try {
+      new QRCode(qrEl, {
+        text: addr,
+        width: 176, height: 176,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M,
+      });
+    } catch(e) {
+      qrEl.innerHTML = '<div style="color:#666;font-size:12px;text-align:center;padding:20px">QR 生成失败<br>请复制地址</div>';
+    }
+  } else {
+    qrEl.innerHTML = '<div style="color:#666;font-size:12px;text-align:center;padding:20px">QR 库未加载<br>请复制地址</div>';
+  }
+
+  openModal('modal-receive');
+}
+
+// 🔐 显示私钥（双重确认）
+async function revealPrivateKey() {
+  const ok = confirm('⚠️ 安全警告\n\n私钥一旦泄露，资产将永久丢失。\n\n确保你正在：\n✓ 自己的电脑\n✓ 无人偷窥\n✓ 无屏幕录制\n\n确定显示私钥吗？');
+  if (!ok) return;
+
+  let privKey = App.ethersWallet?.privateKey;
+
+  // 如果内存里没有，尝试从 DB 解密
+  if (!privKey) {
+    try {
+      const saved = await DB.get('identity', 'me');
+      if (saved?.privKeyEnc) {
+        const pwd = prompt('请输入你的钱包密码（用于解密私钥）：');
+        if (!pwd) return;
+        privKey = await decryptPrivKey(saved.privKeyEnc, pwd).catch(()=>null);
+        if (!privKey) {
+          // 旧格式兼容
+          privKey = await decryptPrivKey(saved.privKeyEnc, saved.address).catch(()=>null);
+        }
+        if (!privKey) { showToast('密码错误','无法解密私钥','⚠️'); return; }
+        // 重建 ethersWallet
+        App.ethersWallet = new ethers.Wallet(privKey);
+      }
+    } catch(e) {
+      showToast('无法显示','读取私钥失败: '+e.message.slice(0,40),'⚠️');
+      return;
+    }
+  }
+
+  if (!privKey) { showToast('无法显示','钱包未解锁，请重新登录','⚠️'); return; }
+
+  document.getElementById('prof-pk-val').textContent   = privKey;
+  document.getElementById('prof-mnemonic').textContent = App.identity?.mnemonic || '（无助记词）';
+  document.getElementById('prof-pk-display').style.display = 'block';
+  document.getElementById('prof-reveal-btn').style.display  = 'none';
+
+  showToast('⚠️ 私钥已显示','请尽快保存并关闭','🔐', 5000);
+}
+
+function copyMyPK() {
+  if (!App.ethersWallet) return;
+  if (!App.ethersWallet) return;
+  copyText(App.ethersWallet.privateKey, '私钥已复制 · 立即粘贴到安全位置');
+}
+
+function showToast(title, msg='', icon='ℹ️', dur=3000) {
+  const el = document.createElement('div');
+  el.className = 'toast-item';
+  el.innerHTML = `<div class="toast-icon">${icon}</div><div class="toast-body"><div class="toast-title">${escHtml(title)}</div>${msg?`<div class="toast-msg">${escHtml(msg)}</div>`:''}</div>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=>{
+    el.classList.add('removing');
+    setTimeout(()=>el.remove(), 350);
+  }, dur);
+}
+
+function timeNow() {
+  return new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+}
+
+function escHtml(str='') {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════════════════
+async function boot() {
+  await DB.open();
+  initAvatarGrid();
+
+  const saved = await DB.get('identity','me').catch(()=>null);
+  if (saved) {
+    App.identity = saved;
+    // 尝试用地址作密码解密私钥（新格式）
+    if (saved.privKeyEnc) {
+      try {
+        const priv = await decryptPrivKey(saved.privKeyEnc, saved.address);
+        App.ethersWallet = new ethers.Wallet(priv);
+      } catch(e) {
+        console.warn('私钥解密失败，转账功能需重新创建身份');
+      }
+    }
+    seedDemoData();
+    initApp();
+  }
+}
+
+boot();
+</script>
+</body>
+</html>
